@@ -1,0 +1,197 @@
+﻿@page "/"
+@using Chessy.Engine.Pieces
+@using Microsoft.AspNetCore.Html
+
+<style>
+     body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(8, 72px);
+      grid-template-rows: repeat(8, 72px);
+      border: solid gray;
+    }
+
+    .square {
+      width: 72px;
+      height: 72px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 72px;
+      cursor: pointer;
+      opacity: 1.0;
+      border: none;
+      font-family: cursive;
+      color: black;
+    }
+
+    .selected {
+        background-color: yellow !important;
+    }
+
+    .light {
+        background-color: white;
+    }
+
+    .dark {
+        background-color: lightgray;
+    }
+
+    
+</style>
+
+<PageTitle>Chessy</PageTitle>
+
+<div class="board">
+    @foreach (int file in Enumerable.Range(0, 8))
+    {
+        <div class="rank">
+        @foreach (int rank in Enumerable.Range(0, 8).Reverse())
+        {
+            var square = position.Board.Squares[file, rank];
+            var cssClass = ((rank + file) % 2 == 0) ? "dark" : "light";
+
+            if (rank == currentMove?.From.rank 
+                && file == currentMove?.From.file)
+            {
+                cssClass += " selected";
+            }
+
+            <div class="square @cssClass" @onclick="@(() => OnCellClick(file, rank))">
+                @(square?.Icon.ToUpper() ?? " ")
+            </div>
+        }
+        </div>
+    }
+</div>
+
+<br />
+<br />
+
+@* <button @onclick="@OnHintClick">Hint</button>
+Hint: @hint<br />
+
+<div style="display: none;">
+@foreach (var i in Enumerable.Range(0, notation.Count))
+{
+    if (i % 2 == 0)
+    {
+        @($"{(i / 2) + 1}. {notation[i]}")
+    }
+    else
+    {
+        <text>&nbsp;</text> @notation[i]<text>&nbsp;</text>
+    }
+}
+</div> *@
+
+@code {
+    Position position = new Position();
+
+    IList<string> notation = new List<string>();
+
+    string yourMove = string.Empty;
+
+    string hint = string.Empty;
+
+    Move? currentMove = null;
+
+    IList<Move> validMoves = new List<Move>();
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        position.ResetToStartingPosition();
+        validMoves = position.GetValidMoves(true, true).ToList();
+    }
+
+    void OnGoClick()
+    {
+    }
+
+    void OnHintClick()
+    {
+        hint = "...";
+        Task.Run(() =>
+        {
+            var (move, score) = position.FindBestMove(3, true);
+
+            if (move is not null)
+            {
+                hint = $"{move.Notation} : {score: 0.0}";
+            }
+            else
+            {
+                hint = "No hint";
+            }
+            InvokeAsync(StateHasChanged);
+        });
+    }
+
+    void OnCellClick(int file, int rank)
+    {
+        if (currentMove is null)
+        {
+            currentMove = new Move
+            {
+                From = (file, rank),
+            };
+        }
+        else
+        {
+            currentMove.To = (file, rank);
+
+            var moveIndex = validMoves.ToList().FindIndex(x =>
+                x.From.file == currentMove.From.file
+                && x.From.rank == currentMove.From.rank
+                && x.To.file == currentMove.To.file
+                && x.To.rank == currentMove.To.rank);
+            if (moveIndex >= 0)
+            {
+                MakeMove(moveIndex);
+            }
+            else
+            {
+                hint = "Error";
+            }
+            
+            currentMove = null;
+        }
+    }
+
+    void MakeMove(int moveIndex)
+    {
+        MakeMove(validMoves[moveIndex]);
+    }
+
+    void MakeMove(Move move)
+    {
+        notation.Add(move.Notation);
+        var moves = position.Moves;
+        moves.Add(move);
+        position = Position.FromMoves(moves);
+        validMoves.Clear();
+
+        Task.Run(() =>
+        {
+            var (computerMove, _) = position.FindBestMove(2, true);
+            if (computerMove is not null)
+            {
+                moves = position.Moves;
+                moves.Add(computerMove);
+                notation.Add(computerMove.Notation);
+                position = Position.FromMoves(moves);
+            }
+            validMoves = position.GetValidMoves(true, true).OrderBy(x => x.Notation).ToList();
+            InvokeAsync(StateHasChanged);
+        });
+    }
+}
