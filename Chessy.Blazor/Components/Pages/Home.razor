@@ -1,6 +1,8 @@
 ﻿@page "/"
 @using Chessy.Engine.Pieces
+@using Chessy.Engine.Extensions
 @using Microsoft.AspNetCore.Html
+@using System.Text
 
 <style>
      body {
@@ -33,7 +35,23 @@
     }
 
     .selected {
+        background-color: lightyellow !important;
+    }
+
+    .lastMove {
         background-color: yellow !important;
+    }
+
+    .legalTarget {
+        background-color: lightyellow !important;
+    }
+
+    .check {
+        background-color: lightcoral !important;
+    }
+
+    .checkmate {
+        background-color: darkred !important;
     }
 
     .light {
@@ -43,11 +61,22 @@
     .dark {
         background-color: lightgray;
     }
-
     
 </style>
 
 <PageTitle>Chessy</PageTitle>
+
+@{
+    var legalTargets = Enumerable.Empty<(int file, int rank)>();
+    if (currentMove is not null)
+    {
+        legalTargets = validMoves.Where(x =>
+                x.From.file == currentMove.From.file
+                && x.From.rank == currentMove.From.rank)
+            .Select(x => x.To);
+        System.Console.WriteLine(legalTargets.Count());
+    }
+}
 
 <div class="board">
     @foreach (int file in Enumerable.Range(0, 8))
@@ -55,17 +84,37 @@
         <div class="rank">
         @foreach (int rank in Enumerable.Range(0, 8).Reverse())
         {
+            var lastMove = position.Moves.LastOrDefault();
+
             var square = position.Board.Squares[file, rank];
             var cssClass = ((rank + file) % 2 == 0) ? "dark" : "light";
 
-            if (rank == currentMove?.From.rank 
-                && file == currentMove?.From.file)
+            if ((rank == currentMove?.From.rank && file == currentMove?.From.file)
+                || (lastMove?.From.rank == rank && lastMove?.From.file == file)
+                || (lastMove?.To.rank == rank && lastMove?.To.file == file))
             {
                 cssClass += " selected";
             }
 
+            if ((lastMove?.From.rank == rank && lastMove?.From.file == file)
+                || (lastMove?.To.rank == rank && lastMove?.To.file == file))
+            {
+                cssClass += " lastMove";
+            }
+
+            if (legalTargets.Any(x => x.rank == rank && x.file == file))
+                {
+                    cssClass += " legalTarget";
+                }
+
+            
+            if ((lastMove?.IsCheck ?? false) && square?.Kind == PieceKind.King && square.Color != lastMove.Piece.Color)
+                {
+                    cssClass += lastMove.IsCheckmate ? " checkmate" : " check";
+                }
+
             <div class="square @cssClass" @onclick="@(() => OnCellClick(file, rank))">
-                @(square?.Icon.ToUpper() ?? " ")
+                @(square?.Icon.ToUpper() ?? string.Empty)
             </div>
         }
         </div>
@@ -74,6 +123,27 @@
 
 <br />
 <br />
+
+<div style="margin: 32px;">
+    @{
+        var ntext = new StringBuilder();
+
+        foreach (var i in Enumerable.Range(0, notation.Count))
+        {
+            if (i % 2 == 0)
+            {
+                ntext.Append($"{(i / 2) + 1, -5}")
+                    .Append($"{notation[i], -10}");
+            }
+            else
+            {
+                ntext.AppendLine($"{notation[i], -10}");
+            }
+        }
+    }
+    
+    <textarea cols="30" rows="30" readonly>@ntext</textarea>
+</div>
 
 @* <button @onclick="@OnHintClick">Hint</button>
 Hint: @hint<br />
@@ -93,6 +163,8 @@ Hint: @hint<br />
 </div> *@
 
 @code {
+    PieceColor PlayerColor = PieceColor.White;
+
     Position position = new Position();
 
     IList<string> notation = new List<string>();
@@ -110,7 +182,7 @@ Hint: @hint<br />
         base.OnInitialized();
 
         position.ResetToStartingPosition();
-        validMoves = position.GetValidMoves(true, true).ToList();
+        validMoves = position.GetMoves(PlayerColor, true, true).ToList();
     }
 
     void OnGoClick()
@@ -120,30 +192,33 @@ Hint: @hint<br />
     void OnHintClick()
     {
         hint = "...";
-        Task.Run(() =>
-        {
-            var (move, score) = position.FindBestMove(3, true);
+    //     Task.Run(() =>
+    //     {
+    //         var move = position.FindBestMoveAB(PieceColor.White, 2);
 
-            if (move is not null)
-            {
-                hint = $"{move.Notation} : {score: 0.0}";
-            }
-            else
-            {
-                hint = "No hint";
-            }
-            InvokeAsync(StateHasChanged);
-        });
+    //         if (move is not null)
+    //         {
+    //             hint = $"{move.Notation}";
+    //         }
+    //         else
+    //         {
+    //             hint = "No hint";
+    //         }
+    //         InvokeAsync(StateHasChanged);
+    //     });
     }
 
     void OnCellClick(int file, int rank)
     {
         if (currentMove is null)
         {
-            currentMove = new Move
+            if (position.Board.Squares[file, rank]?.Color == PlayerColor)
             {
-                From = (file, rank),
-            };
+                currentMove = new Move
+                {
+                    From = (file, rank),
+                };
+            }
         }
         else
         {
@@ -182,15 +257,17 @@ Hint: @hint<br />
 
         Task.Run(() =>
         {
-            var (computerMove, _) = position.FindBestMove(2, true);
+            var newPosition = Position.FromMoves(moves);
+            var computerMove = newPosition.FindBestMoveAB(PlayerColor.OpponentColor(), 5);
             if (computerMove is not null)
             {
-                moves = position.Moves;
+                moves = newPosition.Moves;
                 moves.Add(computerMove);
                 notation.Add(computerMove.Notation);
-                position = Position.FromMoves(moves);
+                newPosition = Position.FromMoves(moves);
             }
-            validMoves = position.GetValidMoves(true, true).OrderBy(x => x.Notation).ToList();
+            validMoves = newPosition.GetMoves(PlayerColor, true, true);
+            position = newPosition;
             InvokeAsync(StateHasChanged);
         });
     }

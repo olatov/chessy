@@ -1,4 +1,6 @@
-﻿using Chessy.Engine.Pieces;
+﻿using System.Drawing;
+using Chessy.Engine.Extensions;
+using Chessy.Engine.Pieces;
 
 namespace Chessy.Engine;
 
@@ -20,7 +22,7 @@ public class Position
         {
             result.MakeMove(move);
             result.Moves.Add(move);
-            result.SwitchColor();
+            result.ColorToMove = result.ColorToMove.OpponentColor();
         }
 
         return result;
@@ -160,73 +162,94 @@ public class Position
         }
     }
 
-    public void SwitchColor()
+    public Move? FindBestMoveAB(PieceColor playerColor, int depth = 1)
     {
-        ColorToMove = (ColorToMove == PieceColor.White)
-            ? PieceColor.Black
-            : PieceColor.White;
-    }
-
-    public (Move? move, double score) FindBestMove(int depth = 1, bool isFullInfo = false)
-    {
-        const int maxDepth = 3;
-
-        Move? result = null;
-        double bestScore = (ColorToMove == PieceColor.White) ? -1.0e+9 : 1.0e+9;
-
-        if (depth == maxDepth)
+        var moves = GetMoves(playerColor, true, true);
+        if (moves is null)
         {
-            Console.WriteLine();
-            Console.WriteLine($"--- {ColorToMove} ---");
+            return null;
+        }
+        else if (moves.Count == 1)
+        {
+            return moves.Single();
         }
 
-        foreach (var move in GetValidMoves(false, fullInfo: isFullInfo))
+        var (bestMove, _) = FindMoveAB(depth, isMaximising: playerColor == PieceColor.White);
+        if (bestMove is null) { return null; }
+        
+        return moves.Single(x =>
+            x.From.file == bestMove.From.file
+            && x.From.rank == bestMove.From.rank
+            && x.To.file == bestMove.To.file
+            && x.To.rank == bestMove.To.rank
+            && x.PromotionPiece == bestMove.PromotionPiece);
+    }
+
+    public (Move? move, double score) FindMoveAB(int depth, double alpha = double.MinValue, double beta = double.MaxValue, bool isMaximising = true)
+    {
+        if (depth == 0)
         {
-            if (Board.Squares[move.To.file, move.To.rank]?.Kind == PieceKind.King)
-            {
-                return (move, (ColorToMove == PieceColor.White) ? 1.0e+9 : -1.0e+9);
-            }
+            return (null, isMaximising ? Board.MaterialValue : -Board.MaterialValue);
+        }
 
+        var moves = GetMoves(isMaximising ? PieceColor.White : PieceColor.Black, false);
+        double bestScore = double.MinValue;
+        Move? bestMove = null;
+
+        if (depth > 2)
+        {
+            moves = moves.OrderBy(x =>
+            {
+                MakeMove(x);
+                var (_, res) = FindMoveAB(2, -beta, -alpha, !isMaximising);
+                UndoMove(x);
+                return res;
+            }).ToList();
+        }
+
+        foreach (var move in moves)
+        {
             MakeMove(move);
-            double score = 0;
-
-            if (depth > 0)
+            var (_, moveScore) = FindMoveAB(depth - 1, -beta, -alpha, !isMaximising);
+            moveScore = -moveScore;
+            if (depth == 5)
             {
-                SwitchColor();
-                (_, score) = FindBestMove(depth - 1);
-                SwitchColor();
+                Console.WriteLine($"{move.Notation}\t\t{moveScore,6:0.00}");
             }
-            else
-            {
-                score = Board.MaterialValue;
-            }
+            UndoMove(move);
 
-            if ((ColorToMove == PieceColor.White && score > bestScore) 
-                || (ColorToMove == PieceColor.Black && score < bestScore))
+            if (moveScore > bestScore)
             {
-                result = move;
-                bestScore = score;
-            }
-
-            if (depth == maxDepth)
-            {
-                Console.WriteLine($"{move.Notation}\t {score: +0.00}");
+                bestScore = moveScore;
+                bestMove = move;
             }
             
-            UndoMove(move);
+            alpha = Math.Max(alpha, bestScore);
+            if (alpha >= beta)
+            {
+                break;
+            }
         }
 
-        if (result is null)
+        if (moves.Count == 0)
         {
-            // Stalemate?
-            //return (result, 0);
+            return (null, isMaximising ? Board.MaterialValue : -Board.MaterialValue);
         }
 
-        return (result, bestScore);
+        return (bestMove, bestScore);
+
+        //return isMaximising ? Board.MaterialValue : -Board.MaterialValue;
+
+        //    value := max(value, −negamax(child, depth − 1, −β, −α, −color))
+        //α:= max(α, value)
+        //if α ≥ β then
+        //    break (*cut - off *)
     }
 
-    public IEnumerable<Move> GetValidMoves(bool checks = true, bool fullInfo = false)
+
+    public IList<Move> GetMoves(PieceColor playerColor, bool checks = true, bool fullInfo = false)
     {
+        var result = new List<Move>();
         bool isValid = false;
 
         foreach (int fromFile in Enumerable.Range(0, 8))
@@ -234,7 +257,7 @@ public class Position
             foreach (int fromRank in Enumerable.Range(0, 8))
             {
                 var fromSquare = Board.Squares[fromFile, fromRank];
-                if (fromSquare?.Color == ColorToMove)
+                if (fromSquare?.Color == playerColor)
                 {
                     foreach (int toFile in Enumerable.Range(0, 8))
                     {
@@ -292,37 +315,39 @@ public class Position
                             if (isValid && checks)
                             {
                                 MakeMove(move);
-                                SwitchColor();
-                                var opponentMoves = GetValidMoves(false);
+                                var opponentMoves = GetMoves(playerColor.OpponentColor(), false);
                                 isValid = !opponentMoves.Any(x => Board.Squares[x.To.file, x.To.rank]?.Kind == PieceKind.King);
                                 UndoMove(move);
-                                SwitchColor();
                             }
 
                             if (fullInfo)
                             {
                                 MakeMove(move);
-                                var nextMoves = GetValidMoves(false, false);
+                                var nextMoves = GetMoves(playerColor.OpponentColor(), false, false);
                                 move.IsCheck = nextMoves.Any(x => x.CapturedPiece?.Kind == PieceKind.King);
                                 if (move.IsCheck)
                                 {
-                                    SwitchColor();
-                                    nextMoves = GetValidMoves(true, false);
+                                    nextMoves = GetMoves(playerColor.OpponentColor(), true, false);
                                     move.IsCheckmate = !nextMoves.Any();
-                                    SwitchColor();
+                                }
+                                else if (!nextMoves.Any())
+                                {
+                                    move.IsStalemate = true;
                                 }
                                 UndoMove(move);
                             }
                                 
                             if (isValid)
                             {
-                                yield return move;
+                                result.Add(move);
                             }
                         }
                     }
                 }
             }
         }
+
+        return result;
     }
 
     public bool IsValidMove(Move move)
@@ -344,16 +369,21 @@ public class Position
                     return true;
                 }
 
-                    if (move.IsCastlingShort
-                        && Board.IsClearBetween(move.From, (7, move.From.rank)))
-                    {
-                        return true;
-                    }
-                    else if (move.IsCastlingLong
-                        && Board.IsClearBetween(move.From, (0, move.From.rank)))
-                    {
-                        return true;
-                    }
+                if (move.IsCastlingShort
+                    && Board.IsClearBetween(move.From, (7, move.From.rank))
+                    && ((ColorToMove == PieceColor.White && CastlingState[0])
+                        || (ColorToMove == PieceColor.Black && CastlingState[2])))
+                {
+                    return true;
+                }
+                else if (move.IsCastlingLong
+                    && Board.IsClearBetween(move.From, (0, move.From.rank))
+                    && ((ColorToMove == PieceColor.White && CastlingState[1])
+                        || (ColorToMove == PieceColor.Black && CastlingState[3]))
+                    )
+                {
+                    return true;
+                }
 
                 return false;
 

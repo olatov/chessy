@@ -12,13 +12,13 @@ namespace Chessy.Console
             var position = new Position();
             position.ResetToStartingPosition();
 
-            var moves = position.GetValidMoves().ToList();
+            //var moves = position.GetMoves().ToList();
 
-            System.Console.WriteLine(moves.Count);
-            foreach (var move in moves)
-            {
-                System.Console.WriteLine(move.Notation);
-            }
+            //System.Console.WriteLine(moves.Count);
+            //foreach (var move in moves)
+            //{
+            //    System.Console.WriteLine(move.Notation);
+            //}
         }
     }
 }
