@@ -35,7 +35,7 @@
     }
 
     .selected {
-        background-color: lightyellow !important;
+        background-color: lime !important;
     }
 
     .lastMove {
@@ -43,7 +43,8 @@
     }
 
     .legalTarget {
-        background-color: lightyellow !important;
+        background-color: lime !important;
+
     }
 
     .check {
@@ -258,7 +259,7 @@ Hint: @hint<br />
         Task.Run(() =>
         {
             var newPosition = Position.FromMoves(moves);
-            var computerMove = newPosition.FindBestMoveAB(PlayerColor.OpponentColor(), 5);
+            var computerMove = newPosition.FindBestMoveAB(PlayerColor.OpponentColor(), 4);
             if (computerMove is not null)
             {
                 moves = newPosition.Moves;

@@ -212,7 +212,7 @@ public class Position
             MakeMove(move);
             var (_, moveScore) = FindMoveAB(depth - 1, -beta, -alpha, !isMaximising);
             moveScore = -moveScore;
-            if (depth == 5)
+            if (depth == 4)
             {
                 Console.WriteLine($"{move.Notation}\t\t{moveScore,6:0.00}");
             }
@@ -323,7 +323,7 @@ public class Position
                             if (fullInfo)
                             {
                                 MakeMove(move);
-                                var nextMoves = GetMoves(playerColor.OpponentColor(), false, false);
+                                var nextMoves = GetMoves(playerColor, false, false);
                                 move.IsCheck = nextMoves.Any(x => x.CapturedPiece?.Kind == PieceKind.King);
                                 if (move.IsCheck)
                                 {
