@@ -49,12 +49,100 @@ public class Move
 
     public bool CouldCastleLong { get; set; }
 
+    public IList<string> NotationVariants
+    {
+        get
+        {
+            var notations = new List<string>();
+            var result = new StringBuilder();
+
+            foreach (var variant in Enumerable.Range(1, 4))
+            {
+                result.Clear();
+
+                if (IsCastlingShort)
+                {
+                    result.Append("0-0");
+                }
+                else if (IsCastlingLong)
+                {
+                    result.Append("0-0-0");
+                }
+                else
+                {
+                    var piecePrefix = Piece.Kind switch
+                    {
+                        PieceKind.King => "K",
+                        PieceKind.Queen => "Q",
+                        PieceKind.Rook => "R",
+                        PieceKind.Bishop => "B",
+                        PieceKind.Knight => "N",
+                        _ => string.Empty
+                    };
+
+                    var fromFile = (char)((char)From.file + 'a');
+                    var fromRank = (char)((char)From.rank + '1');
+                    var toFile = (char)((char)To.file + 'a');
+                    var toRank = (char)((char)To.rank + '1');
+
+                    result.Append(piecePrefix);
+
+                    if (variant == 2 || variant == 4 || (Piece.Kind == PieceKind.Pawn && IsCapture))
+                    {
+                        result.Append(fromFile);
+                    }
+
+                    if (variant == 3 || variant == 4)
+                    {
+                        result.Append(fromRank);
+                    }
+
+                    if (IsCapture)
+                    {
+                        result.Append("x");
+                    }
+
+                    result.Append(toFile)
+                        .Append(toRank);
+
+                    if (IsPromotion)
+                    {
+                        var promotionPiecePrefix = PromotionPiece switch
+                        {
+                            PieceKind.King => "K",
+                            PieceKind.Queen => "Q",
+                            PieceKind.Rook => "R",
+                            PieceKind.Bishop => "B",
+                            PieceKind.Knight => "N",
+                            _ => string.Empty
+                        };
+
+                        result.Append("=")
+                            .Append(promotionPiecePrefix);
+                    }
+                }
+
+                if (IsCheckmate)
+                {
+                    result.Append("#");
+                }
+                else if (IsCheck)
+                {
+                    result.Append("+");
+                }
+
+                notations.Add(result.ToString());
+            }
+
+            return notations;
+        }
+    }
+
     public string Notation
     {
         get
         {
             var result = new StringBuilder();
-
 
             if (IsCastlingShort)
             {

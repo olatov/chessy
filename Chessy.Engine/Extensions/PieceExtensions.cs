@@ -8,11 +8,11 @@ public static class PieceExtensions
     {
         double value = piece.Kind switch
         {
-            PieceKind.Pawn => 1.0,
-            PieceKind.Knight => 3.0,
-            PieceKind.Bishop => 3.0,
-            PieceKind.Rook => 5.0,
-            PieceKind.Queen => 9.0,
+            PieceKind.Pawn => 1.00,
+            PieceKind.Knight => 3.05,
+            PieceKind.Bishop => 3.33,
+            PieceKind.Rook => 5.63,
+            PieceKind.Queen => 9.50,
             PieceKind.King => 1.0e+6,
             _ => throw new NotImplementedException(),
         };

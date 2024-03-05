@@ -201,7 +201,7 @@ public class Position
             moves = moves.OrderBy(x =>
             {
                 MakeMove(x);
-                var (_, res) = FindMoveAB(2, -beta, -alpha, !isMaximising);
+                var (_, res) = FindMoveAB(1, -beta, -alpha, !isMaximising);
                 UndoMove(x);
                 return res;
             }).ToList();
@@ -210,9 +210,17 @@ public class Position
         foreach (var move in moves)
         {
             MakeMove(move);
-            var (_, moveScore) = FindMoveAB(depth - 1, -beta, -alpha, !isMaximising);
+            double moveScore;
+            if (move.CapturedPiece?.Kind == PieceKind.King)
+            {
+                moveScore = -1.0e+6;
+            }
+            else
+            {
+                (_, moveScore) = FindMoveAB(depth - 1, -beta, -alpha, !isMaximising);
+            }
             moveScore = -moveScore;
-            if (depth == 4)
+            if (depth == 5)
             {
                 Console.WriteLine($"{move.Notation}\t\t{moveScore,6:0.00}");
             }

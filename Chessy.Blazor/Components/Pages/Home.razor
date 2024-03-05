@@ -193,20 +193,20 @@ Hint: @hint<br />
     void OnHintClick()
     {
         hint = "...";
-    //     Task.Run(() =>
+        //     Task.Run(() =>
     //     {
-    //         var move = position.FindBestMoveAB(PieceColor.White, 2);
+        //         var move = position.FindBestMoveAB(PieceColor.White, 2);
 
-    //         if (move is not null)
-    //         {
-    //             hint = $"{move.Notation}";
-    //         }
-    //         else
-    //         {
-    //             hint = "No hint";
-    //         }
-    //         InvokeAsync(StateHasChanged);
-    //     });
+        //         if (move is not null)
+        //         {
+        //             hint = $"{move.Notation}";
+        //         }
+        //         else
+        //         {
+        //             hint = "No hint";
+        //         }
+        //         InvokeAsync(StateHasChanged);
+        //     });
     }
 
     void OnCellClick(int file, int rank)
@@ -238,7 +238,7 @@ Hint: @hint<br />
             {
                 hint = "Error";
             }
-            
+
             currentMove = null;
         }
     }
@@ -250,7 +250,10 @@ Hint: @hint<br />
 
     void MakeMove(Move move)
     {
-        notation.Add(move.Notation);
+        var shortNotation = move.NotationVariants
+            .First(x => validMoves.Count(y => y.NotationVariants.Contains(x)) == 1);
+        notation.Add(shortNotation);
+
         var moves = position.Moves;
         moves.Add(move);
         position = Position.FromMoves(moves);
@@ -259,12 +262,15 @@ Hint: @hint<br />
         Task.Run(() =>
         {
             var newPosition = Position.FromMoves(moves);
-            var computerMove = newPosition.FindBestMoveAB(PlayerColor.OpponentColor(), 4);
+            validMoves = newPosition.GetMoves(PlayerColor.OpponentColor(), true, true);
+            var computerMove = newPosition.FindBestMoveAB(PlayerColor.OpponentColor(), 5);
             if (computerMove is not null)
             {
                 moves = newPosition.Moves;
                 moves.Add(computerMove);
-                notation.Add(computerMove.Notation);
+                shortNotation = computerMove.NotationVariants
+                    .First(x => validMoves.Count(y => y.NotationVariants.Contains(x)) == 1);
+                notation.Add(shortNotation);
                 newPosition = Position.FromMoves(moves);
             }
             validMoves = newPosition.GetMoves(PlayerColor, true, true);
