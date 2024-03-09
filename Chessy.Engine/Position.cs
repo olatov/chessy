@@ -1,5 +1,4 @@
-﻿using System.Drawing;
-using Chessy.Engine.Extensions;
+﻿using Chessy.Engine.Extensions;
 using Chessy.Engine.Pieces;
 
 namespace Chessy.Engine;
@@ -174,7 +173,12 @@ public class Position
             return moves.Single();
         }
 
-        var (bestMove, _) = FindMoveAB(depth, isMaximising: playerColor == PieceColor.White);
+        var (bestMove, _) = FindMoveAB(
+            depth,
+            isMaximising: playerColor == PieceColor.White,
+            debug: true,
+            legalChecks:true);
+
         if (bestMove is null) { return null; }
         
         return moves.Single(x =>
@@ -185,14 +189,14 @@ public class Position
             && x.PromotionPiece == bestMove.PromotionPiece);
     }
 
-    public (Move? move, double score) FindMoveAB(int depth, double alpha = double.MinValue, double beta = double.MaxValue, bool isMaximising = true)
+    public (Move? move, double score) FindMoveAB(int depth, double alpha = double.MinValue, double beta = double.MaxValue, bool isMaximising = true, bool legalChecks = false, bool debug = false)
     {
         if (depth == 0)
         {
             return (null, isMaximising ? Board.MaterialValue : -Board.MaterialValue);
         }
 
-        var moves = GetMoves(isMaximising ? PieceColor.White : PieceColor.Black, false);
+        var moves = GetMoves(isMaximising ? PieceColor.White : PieceColor.Black, legalChecks);
         double bestScore = double.MinValue;
         Move? bestMove = null;
 
@@ -213,14 +217,14 @@ public class Position
             double moveScore;
             if (move.CapturedPiece?.Kind == PieceKind.King)
             {
-                moveScore = -1.0e+6;
+                moveScore = -1.0e+6 + (depth * 1000);
             }
             else
             {
                 (_, moveScore) = FindMoveAB(depth - 1, -beta, -alpha, !isMaximising);
             }
             moveScore = -moveScore;
-            if (depth == 5)
+            if (debug)
             {
                 Console.WriteLine($"{move.Notation}\t\t{moveScore,6:0.00}");
             }
@@ -255,10 +259,10 @@ public class Position
     }
 
 
-    public IList<Move> GetMoves(PieceColor playerColor, bool checks = true, bool fullInfo = false)
+    public IList<Move> GetMoves(PieceColor playerColor, bool legalChecks = true, bool fullInfo = false)
     {
         var result = new List<Move>();
-        bool isValid = false;
+        bool isLegal = false;
 
         foreach (int fromFile in Enumerable.Range(0, 8))
         {
@@ -318,14 +322,28 @@ public class Position
                                 move.CouldCastleLong = CastlingState[3];
                             }
 
-                            isValid = IsValidMove(move);
+                            isLegal = IsLegalMove(move);
 
-                            if (isValid && checks)
+                            if (isLegal && legalChecks)
                             {
                                 MakeMove(move);
                                 var opponentMoves = GetMoves(playerColor.OpponentColor(), false);
-                                isValid = !opponentMoves.Any(x => Board.Squares[x.To.file, x.To.rank]?.Kind == PieceKind.King);
+                                isLegal = !opponentMoves.Any(x => Board.Squares[x.To.file, x.To.rank]?.Kind == PieceKind.King);
                                 UndoMove(move);
+                            }
+
+                            if (isLegal && legalChecks && (move.IsCastlingShort || move.IsCastlingLong))
+                            {
+                                var opponentMoves = GetMoves(playerColor.OpponentColor(), false);
+                                isLegal = !opponentMoves.Any(x => Board.Squares[x.To.file, x.To.rank]?.Kind == PieceKind.King);
+                                if (move.IsCastlingShort)
+                                {
+                                    isLegal = isLegal && !opponentMoves.Any(x => x.To.file == (move.To.file + 1) && x.To.rank == move.To.rank);
+                                }
+                                else if (move.IsCastlingLong)
+                                {
+                                    isLegal = isLegal && !opponentMoves.Any(x => x.To.file == (move.To.file - 1) && x.To.rank == move.To.rank);
+                                }
                             }
 
                             if (fullInfo)
@@ -345,7 +363,7 @@ public class Position
                                 UndoMove(move);
                             }
                                 
-                            if (isValid)
+                            if (isLegal)
                             {
                                 result.Add(move);
                             }
@@ -358,7 +376,7 @@ public class Position
         return result;
     }
 
-    public bool IsValidMove(Move move)
+    public bool IsLegalMove(Move move)
     {
         var piece = Board.Squares[move.From.file, move.From.rank];
         if (piece is null || piece != move.Piece) { return false; }
