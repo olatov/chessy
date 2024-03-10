@@ -1,4 +1,5 @@
-﻿using Chessy.Engine.Extensions;
+﻿using System.Diagnostics;
+using Chessy.Engine.Extensions;
 using Chessy.Engine.Pieces;
 
 namespace Chessy.Engine;
@@ -165,6 +166,8 @@ public class Position
 
     public Move? FindBestMoveAB(PieceColor playerColor, int depth = 1)
     {
+        Console.WriteLine();
+        var sw = Stopwatch.StartNew();
         var moves = GetMoves(playerColor, true, true);
         if (moves is null)
         {
@@ -181,8 +184,10 @@ public class Position
             isMaximising: playerColor == PieceColor.White,
             debug: true,
             legalChecks:true);
+        sw.Stop();
 
-        Console.WriteLine($"Nodes: {_nodesCounter}");
+        Console.WriteLine($"Nodes: {_nodesCounter / 1.0e+6:0.0}m ({_nodesCounter / sw.Elapsed.TotalSeconds / 1000.0:0.0}k / sec)");
+        Console.WriteLine($"Time: {sw.Elapsed}");
 
         if (bestMove is null) { return null; }
         
@@ -223,6 +228,12 @@ public class Position
         foreach (var move in moves)
         {
             counter++;
+            Stopwatch? sw = null;
+            if (debug)
+            {
+                Console.Write($"[{counter} / {total}]\t{move.Notation,-8}\t");
+                sw = Stopwatch.StartNew();
+            }
             MakeMove(move);
             double moveScore;
             if (move.CapturedPiece?.Kind == PieceKind.King)
@@ -235,10 +246,6 @@ public class Position
                 (_, moveScore) = FindMoveAB(depth - 1, -beta, -alpha, !isMaximising);
             }
             moveScore = -moveScore;
-            if (debug)
-            {
-                Console.WriteLine($"[{counter} / {total}] {move.Notation}\t\t{moveScore,6:0.00}");
-            }
             UndoMove(move);
 
             if (moveScore > bestScore)
@@ -246,7 +253,19 @@ public class Position
                 bestScore = moveScore;
                 bestMove = move;
             }
-            
+
+            if (debug)
+            {
+                sw?.Stop();
+                Console.Write($"{moveScore,6:0.00}\t");
+                Console.Write($"{sw?.Elapsed.TotalSeconds,5:0.0}s\t");
+                if (bestMove == move)
+                {
+                    Console.Write("*");
+                }
+                Console.WriteLine();
+            }
+
             alpha = Math.Max(alpha, bestScore);
             if (alpha >= beta)
             {

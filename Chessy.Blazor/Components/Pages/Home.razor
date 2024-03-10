@@ -79,7 +79,7 @@
                 x.From.file == currentMove.From.file
                 && x.From.rank == currentMove.From.rank)
             .Select(x => x.To);
-        System.Console.WriteLine(legalTargets.Count());
+        //System.Console.WriteLine(legalTargets.Count());
     }
 }
 
@@ -267,7 +267,7 @@ Hint: @hint<br />
         {
             var newPosition = Position.FromMoves(moves);
             validMoves = newPosition.GetMoves(PlayerColor.OpponentColor(), true, true);
-            var computerMove = newPosition.FindBestMoveAB(PlayerColor.OpponentColor(), 5);
+            var computerMove = newPosition.FindBestMoveAB(PlayerColor.OpponentColor(), 6);
             if (computerMove is not null)
             {
                 moves = newPosition.Moves;
