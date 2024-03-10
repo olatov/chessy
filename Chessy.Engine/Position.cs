@@ -175,6 +175,8 @@ public class Position
         }
         else if (moves.Count == 1)
         {
+            Console.WriteLine();
+            Console.WriteLine($"[Forced]\t{moves.Single().Notation}");
             return moves.Single();
         }
 
@@ -208,10 +210,15 @@ public class Position
         }
 
         var moves = GetMoves(isMaximising ? PieceColor.White : PieceColor.Black, legalChecks);
+        if (!moves.Any())
+        {
+            return (null, 0);
+        }
+
         double bestScore = double.MinValue;
         Move? bestMove = null;
 
-        if (depth > 2)
+        if (depth > 3)
         {
             moves = moves.OrderBy(x =>
             {
@@ -238,7 +245,7 @@ public class Position
             double moveScore;
             if (move.CapturedPiece?.Kind == PieceKind.King)
             {
-                moveScore = -1.0e+6 + (depth * 1000);
+                moveScore = -1.0e+6 - (depth * 1000);
                 _nodesCounter++;
             }
             else
