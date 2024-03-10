@@ -13,6 +13,8 @@ public class Position
 
     public bool[] CastlingState { get; set; }
 
+    private long _nodesCounter { get; set; }
+
     public static Position FromMoves(IEnumerable<Move> moves)
     {
         var result = new Position();
@@ -173,11 +175,14 @@ public class Position
             return moves.Single();
         }
 
+        _nodesCounter = 0;
         var (bestMove, _) = FindMoveAB(
             depth,
             isMaximising: playerColor == PieceColor.White,
             debug: true,
             legalChecks:true);
+
+        Console.WriteLine($"Nodes: {_nodesCounter}");
 
         if (bestMove is null) { return null; }
         
@@ -193,6 +198,7 @@ public class Position
     {
         if (depth == 0)
         {
+            _nodesCounter++;
             return (null, isMaximising ? Board.MaterialValue : -Board.MaterialValue);
         }
 
@@ -211,13 +217,18 @@ public class Position
             }).ToList();
         }
 
+        int total = moves.Count();
+        int counter = 0;
+
         foreach (var move in moves)
         {
+            counter++;
             MakeMove(move);
             double moveScore;
             if (move.CapturedPiece?.Kind == PieceKind.King)
             {
                 moveScore = -1.0e+6 + (depth * 1000);
+                _nodesCounter++;
             }
             else
             {
@@ -226,7 +237,7 @@ public class Position
             moveScore = -moveScore;
             if (debug)
             {
-                Console.WriteLine($"{move.Notation}\t\t{moveScore,6:0.00}");
+                Console.WriteLine($"[{counter} / {total}] {move.Notation}\t\t{moveScore,6:0.00}");
             }
             UndoMove(move);
 
