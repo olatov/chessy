@@ -176,7 +176,7 @@ public class Position
         else if (moves.Count == 1)
         {
             Console.WriteLine();
-            Console.WriteLine($"[Forced]\t{moves.Single().Notation}");
+            Console.WriteLine($"[Forced]\t{moves.Single().NotationVariants.First()}");
             return moves.Single();
         }
 
@@ -218,7 +218,7 @@ public class Position
         double bestScore = double.MinValue;
         Move? bestMove = null;
 
-        if (depth > 3)
+        if (depth > 4)
         {
             moves = moves.OrderBy(x =>
             {
@@ -238,7 +238,9 @@ public class Position
             Stopwatch? sw = null;
             if (debug)
             {
-                Console.Write($"[{counter} / {total}]\t{move.Notation,-8}\t");
+                var shortNotation = move.NotationVariants
+                    .First(x => moves.Count(y => y.NotationVariants.Contains(x)) == 1);
+                Console.Write($"[{counter} / {total}]\t{shortNotation,-8}\t");
                 sw = Stopwatch.StartNew();
             }
             MakeMove(move);
@@ -254,6 +256,11 @@ public class Position
             }
             moveScore = -moveScore;
             UndoMove(move);
+
+            if (move.IsCastlingShort || move.IsCastlingShort)
+            {
+                moveScore += 0.3;
+            }
 
             if (moveScore > bestScore)
             {
