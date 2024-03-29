@@ -272,10 +272,14 @@ public class Position
             {
                 sw?.Stop();
                 Console.Write($"{moveScore,6:0.00}\t");
-                Console.Write($"{sw?.Elapsed.TotalSeconds,5:0.0}s\t");
+                Console.Write(
+                    (sw?.Elapsed.TotalMilliseconds >= 100)
+                        ? $"{sw?.Elapsed.TotalSeconds,5:0.0}s\t"
+                        : $"{"-",6}\t");
+
                 if (bestMove == move)
                 {
-                    Console.Write("*");
+                    Console.Write("<-");
                 }
                 Console.WriteLine();
             }

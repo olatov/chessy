@@ -27,3 +27,19 @@ h1:focus {
 .darker-border-checkbox.form-check-input {
     border-color: #929292;
 }
+
+@font-face {
+    font-family: 'FreeSerif';
+    src: url('FreeSerif.woff') format('woff');
+    /* Add other font formats if necessary (e.g., .ttf, .otf) */
+    font-weight: normal;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'FreeSans';
+    src: url('FreeSans.woff') format('woff');
+    /* Add other font formats if necessary (e.g., .ttf, .otf) */
+    font-weight: normal;
+    font-style: normal;
+}
