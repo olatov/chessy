@@ -3,6 +3,10 @@
 @using Chessy.Engine.Extensions
 @using Microsoft.AspNetCore.Html
 @using System.Text
+@using Microsoft.AspNetCore.Components.QuickGrid
+
+@inject IJSRuntime JS
+
 
 <style>
      body {
@@ -35,7 +39,7 @@
     }
 
     .selected {
-        background-color: lime !important;
+        background-color: rgb(108, 249, 108) !important;
     }
 
     .lastMove {
@@ -43,8 +47,7 @@
     }
 
     .legalTarget {
-        background-color: lime !important;
-
+        background-color: rgb(105, 223, 105) !important; /* Modified color */
     }
 
     .check {
@@ -56,17 +59,32 @@
     }
 
     .light {
-        background-color: white;
-    }
-
-    .dark {
         background-color: lightgray;
     }
 
-    textarea {
-        font-weight: bold;
+    .dark {
+        //background-color: lightgray;
+        filter: brightness(95%);
     }
-    
+
+    .moveList {
+        font-weight: bold;
+        font-family: sans-serif;
+    }
+
+    .container {
+        margin: 32px;
+    }
+
+    .grid {
+        height: 25rem;
+        overflow-y: auto;
+    }
+
+    .grid ::deep table {
+        min-width: 100%;
+    }
+
 </style>
 
 <PageTitle>Chessy</PageTitle>
@@ -79,7 +97,6 @@
                 x.From.file == currentMove.From.file
                 && x.From.rank == currentMove.From.rank)
             .Select(x => x.To);
-        //System.Console.WriteLine(legalTargets.Count());
     }
 }
 
@@ -112,7 +129,7 @@
                     cssClass += " legalTarget";
                 }
 
-            
+
             if ((lastMove?.IsCheck ?? false) && square?.Kind == PieceKind.King && square.Color != lastMove.Piece.Color)
                 {
                     cssClass += lastMove.IsCheckmate ? " checkmate" : " check";
@@ -129,45 +146,81 @@
 <br />
 <br />
 
-<div style="margin: 32px;">
-    @{
-        var ntext = new StringBuilder();
+<div class="container">
+    <label>
+        AI Level:
+        <input type="range" min="1" max="7" @bind-value="aiLevel"  @bind-value:event="oninput" />
+    </label>
+    @aiLevel
 
-        foreach (var i in Enumerable.Range(0, notation.Count))
-        {
-            if (i % 2 == 0)
-            {
-                ntext.Append($"{(i / 2) + 1, -5}")
-                    .Append($"{notation[i], -10}");
-            }
-            else
-            {
-                ntext.AppendLine($"{notation[i], -10}");
-            }
-        }
-    }
-    
-    <textarea cols="30" rows="30" readonly>@ntext</textarea>
+    <br>
+    <br>
+
+
+    <div class="grid">
+        <QuickGrid Items="@MoveTable" Class="moveList">
+            <PropertyColumn Property="@(p => $"{p.Number}.")" Title="#" />
+            <PropertyColumn Property="@(p => p.White)" />
+            <PropertyColumn Property="@(p => p.Black)" />
+        </QuickGrid>
+    </div>
+
+    <br>
+    <br>
+
+    <button @onclick="@CopyPgnToClipboard">Copy PGN</button>
 </div>
 
-@* <button @onclick="@OnHintClick">Hint</button>
-Hint: @hint<br />
-
-<div style="display: none;">
-@foreach (var i in Enumerable.Range(0, notation.Count))
-{
-    if (i % 2 == 0)
-    {
-        @($"{(i / 2) + 1}. {notation[i]}")
-    }
-    else
-    {
-        <text>&nbsp;</text> @notation[i]<text>&nbsp;</text>
-    }
-}
-</div> *@
-
 @code {
+    record MoveListItem(int Number, string White = "", string Black = "");
+
+    int aiLevel = 4;
+
+    IQueryable<MoveListItem> MoveTable
+    {
+        get
+        {
+            List<MoveListItem> result = new();
+
+            @foreach (var i in Enumerable.Range(0, notation.Count))
+            {
+                if (i % 2 == 0)
+                {
+
+                    result.Add(new MoveListItem((i / 2) + 1, notation[i]));
+                }
+                else
+                {
+                    result[^1] = result[^1] with { Black = notation[i] };
+                }
+            }
+
+            return result.AsQueryable();
+        }
+    }
+
+    string PgnText
+    {
+        get
+        {
+            var asPgn = (string value) => value.Replace("♔", "K")
+                .Replace("♕", "Q")
+                .Replace("♖", "R")
+                .Replace("♗", "B")
+                .Replace("♘", "N");
+
+            StringBuilder sb = new StringBuilder();
+            foreach (var item in MoveTable)
+            {
+                sb.Append($"{item.Number}. {asPgn(item.White)} {asPgn(item.Black)} ");
+            }
+
+            return sb.ToString();
+        }
+    }
+
+    bool showPgn = false;
+
     PieceColor PlayerColor = PieceColor.White;
 
     Position position = new Position();
@@ -187,30 +240,22 @@ Hint: @hint<br />
         base.OnInitialized();
 
         position.ResetToStartingPosition();
-        validMoves = position.GetMoves(PlayerColor, true, true).ToList();
+
+        switch (PlayerColor)
+        {
+            case PieceColor.White:
+                validMoves = position.GetMoves(PlayerColor, true, true).ToList();
+                break;
+
+            case PieceColor.Black:
+                ComputerMove();
+                break;
+        }
     }
 
-    void OnGoClick()
+    async Task CopyPgnToClipboard()
     {
-    }
-
-    void OnHintClick()
-    {
-        hint = "...";
-        //     Task.Run(() =>
-    //     {
-        //         var move = position.FindBestMoveAB(PieceColor.White, 2);
-
-        //         if (move is not null)
-        //         {
-        //             hint = $"{move.Notation}";
-        //         }
-        //         else
-        //         {
-        //             hint = "No hint";
-        //         }
-        //         InvokeAsync(StateHasChanged);
-        //     });
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", PgnText);
     }
 
     void OnCellClick(int file, int rank)
@@ -263,16 +308,22 @@ Hint: @hint<br />
         position = Position.FromMoves(moves);
         validMoves.Clear();
 
+        ComputerMove();
+    }
+
+    void ComputerMove()
+    {
         Task.Run(() =>
         {
+            var moves = position.Moves;
             var newPosition = Position.FromMoves(moves);
             validMoves = newPosition.GetMoves(PlayerColor.OpponentColor(), true, true);
-            var computerMove = newPosition.FindBestMoveAB(PlayerColor.OpponentColor(), 6);
+            var computerMove = newPosition.FindBestMoveAB(PlayerColor.OpponentColor(), aiLevel);
             if (computerMove is not null)
             {
                 moves = newPosition.Moves;
                 moves.Add(computerMove);
-                shortNotation = computerMove.NotationVariants
+                var shortNotation = computerMove.NotationVariants
                     .First(x => validMoves.Count(y => y.NotationVariants.Contains(x)) == 1);
                 notation.Add(shortNotation);
                 newPosition = Position.FromMoves(moves);
