@@ -331,6 +331,7 @@
             {
                 progressCurrent = e.Current;
                 progressTotal = e.Total;
+                InvokeAsync(StateHasChanged);
             }
             newPosition.FindMoveProgress += OnProgressChange;
             var computerMove = newPosition.FindBestMoveAB(PlayerColor.OpponentColor(), aiLevel);
