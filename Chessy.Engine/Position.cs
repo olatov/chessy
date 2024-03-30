@@ -257,7 +257,7 @@ public class Position
             moveScore = -moveScore;
             UndoMove(move);
 
-            if (move.IsCastlingShort || move.IsCastlingShort)
+            if (move.IsCastlingShort || move.IsCastlingLong)
             {
                 moveScore += 0.3;
             }
@@ -460,45 +460,21 @@ public class Position
             case PieceKind.Rook:
                 if (move.From.file == move.To.file || move.From.rank == move.To.rank)
                 {
-                    if (!Board.IsClearBetween(move.From, move.To))
-                    {
-                        return false;
-                    }
-
-                    return true;
+                    return Board.IsClearBetween(move.From, move.To);
                 }
                 break;
 
             case PieceKind.Bishop:
                 if (Math.Abs(move.From.file - move.To.file) == Math.Abs(move.From.rank - move.To.rank))
                 {
-                    if (!Board.IsClearBetween(move.From, move.To))
-                    {
-                        return false;
-                    }
-
-                    return true;
+                    return Board.IsClearBetween(move.From, move.To);
                 }
                 break;
 
             case PieceKind.Queen:
-                if (move.From.file == move.To.file || move.From.rank == move.To.rank)
+                if (move.From.file == move.To.file || move.From.rank == move.To.rank || Math.Abs(move.From.file - move.To.file) == Math.Abs(move.From.rank - move.To.rank))
                 {
-                    if (!Board.IsClearBetween(move.From, move.To))
-                    {
-                        return false;
-                    }
-
-                    return true;
-                }
-                else if (Math.Abs(move.From.file - move.To.file) == Math.Abs(move.From.rank - move.To.rank))
-                {
-                    if (!Board.IsClearBetween(move.From, move.To))
-                    {
-                        return false;
-                    }
-
-                    return true;
+                    return Board.IsClearBetween(move.From, move.To);
                 }
                 break;
 
