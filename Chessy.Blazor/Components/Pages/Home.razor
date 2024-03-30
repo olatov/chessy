@@ -70,7 +70,7 @@
 
     .moveList {
         font-weight: bold;
-        font-family: sans-serif;
+        font-family: 'FreeSerif', serif;
     }
 
     .container {
@@ -148,19 +148,42 @@
 <br />
 
 <div class="container">
-    <progress value="@progressCurrent" max="@progressTotal"></progress>
-    <br>
-    <br>
+    <div>
+        <label>
+            White:
+            <select @bind="whitePlayer">
+                @foreach (var option in PlayerOptions)
+                {
+                    <option value="@option.Key">@option.Value</option>
+                }
+            </select>
+        </label>
+    </div>
 
-    <label>
+    <div>
+        <label>
+            Black:
+            <select @bind="blackPlayer">
+                @foreach (var option in PlayerOptions)
+                {
+                    <option value="@option.Key">@option.Value</option>
+                }
+            </select>
+        </label>
+    </div>
+
+    <div>
+        <progress value="@progressCurrent" max="@progressTotal"></progress>
+    </div>
+
+    @* <label>
         AI Level:
         <input type="range" min="1" max="7" @bind-value="aiLevel"  @bind-value:event="oninput" />
     </label>
-    @aiLevel
+    @aiLevel *@
 
     <br>
     <br>
-
 
     <div class="grid">
         <QuickGrid Items="@MoveTable" Class="moveList">
@@ -226,9 +249,12 @@
 
     bool showPgn = false;
 
-    PieceColor PlayerColor = PieceColor.White;
+    int whitePlayer = 0;
+    int blackPlayer = 4;
 
     Position position = new Position();
+
+    PieceColor currentColor = PieceColor.White;
 
     IList<string> notation = new List<string>();
 
@@ -243,21 +269,31 @@
     int progressCurrent = 0;
     int progressTotal = 1;
 
+    IEnumerable<KeyValuePair<int, string>> PlayerOptions = new KeyValuePair<int, string>[]
+    {
+        new(0, "Human"),
+        new(1, "Comp level 1"),
+        new(2, "Comp level 2"),
+        new(3, "Comp level 3"),
+        new(4, "Comp level 4"),
+        new(5, "Comp level 5"),
+        new(6, "Comp level 6"),
+        new(7, "Comp level 7"),
+    };
+
     protected override void OnInitialized()
     {
         base.OnInitialized();
 
         position.ResetToStartingPosition();
 
-        switch (PlayerColor)
+        if (whitePlayer == 0) 
         {
-            case PieceColor.White:
-                validMoves = position.GetMoves(PlayerColor, true, true).ToList();
-                break;
-
-            case PieceColor.Black:
-                ComputerMove();
-                break;
+            validMoves = position.GetMoves(PieceColor.White, true, true).ToList();
+        }
+        else
+        {
+            ComputerMove(currentColor);
         }
     }
 
@@ -270,7 +306,7 @@
     {
         if (currentMove is null)
         {
-            if (position.Board.Squares[file, rank]?.Color == PlayerColor)
+            if (position.Board.Squares[file, rank]?.Color == currentColor)
             {
                 currentMove = new Move
                 {
@@ -316,25 +352,26 @@
         position = Position.FromMoves(moves);
         validMoves.Clear();
 
-        ComputerMove();
+        PassTurn();
     }
 
-    void ComputerMove()
+    void ComputerMove(PieceColor playerColor)
     {
         Task.Run(() =>
         {
             var moves = position.Moves;
             var newPosition = Position.FromMoves(moves);
-            validMoves = newPosition.GetMoves(PlayerColor.OpponentColor(), true, true);
+            validMoves = newPosition.GetMoves(playerColor, true, true);
 
-            void OnProgressChange(object sender, FindMoveProgressEventArgs e)
+            void OnProgressChange(object? sender, FindMoveProgressEventArgs e)
             {
                 progressCurrent = e.Current;
                 progressTotal = e.Total;
                 InvokeAsync(StateHasChanged);
             }
             newPosition.FindMoveProgress += OnProgressChange;
-            var computerMove = newPosition.FindBestMoveAB(PlayerColor.OpponentColor(), aiLevel);
+            var aiLevel = playerColor == PieceColor.White ? whitePlayer : blackPlayer;
+            var computerMove = newPosition.FindBestMoveAB(playerColor, aiLevel);
             newPosition.FindMoveProgress -= OnProgressChange;
 
             if (computerMove is not null)
@@ -344,11 +381,41 @@
                 var shortNotation = computerMove.NotationVariants
                     .First(x => validMoves.Count(y => y.NotationVariants.Contains(x)) == 1);
                 notation.Add(shortNotation);
-                newPosition = Position.FromMoves(moves);
+                position = Position.FromMoves(moves);
+                InvokeAsync(StateHasChanged);
             }
-            validMoves = newPosition.GetMoves(PlayerColor, true, true);
-            position = newPosition;
-            InvokeAsync(StateHasChanged);
+
+            PassTurn();
         });
+    }
+
+    void PassTurn()
+    {
+        currentColor = currentColor.OpponentColor();
+        var lastMove = position.Moves.LastOrDefault();
+
+        if (position.Moves.Count > 1000)
+        {
+            Console.WriteLine("Enough, stop.");
+            Console.WriteLine("Game over");
+            return;
+        }
+
+        if (lastMove?.IsCheckmate == true || lastMove?.IsStalemate == true)
+        {
+            Console.WriteLine(lastMove.IsCheckmate ? "Checkmate" : "Stalemate");
+            Console.WriteLine("Game over");            
+            return;
+        }
+
+        var currentPlayer = currentColor == PieceColor.White ? whitePlayer : blackPlayer;
+        if (currentPlayer == 0)
+        {
+            validMoves = position.GetMoves(currentColor, true, true);
+        }
+        else
+        {
+            ComputerMove(currentColor);
+        }
     }
 }

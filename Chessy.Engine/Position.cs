@@ -188,7 +188,7 @@ public class Position
             depth,
             isMaximising: playerColor == PieceColor.White,
             debug: true,
-            legalChecks:true);
+            legalChecks: true);
         sw.Stop();
 
         Console.WriteLine($"Nodes: {_nodesCounter / 1.0e+6:0.0}m ({_nodesCounter / sw.Elapsed.TotalSeconds / 1000.0:0.0}k / sec)");
@@ -221,7 +221,7 @@ public class Position
         double bestScore = double.MinValue;
         Move? bestMove = null;
 
-        if (depth > 4)
+        if (depth > 2)
         {
             moves = moves.OrderBy(x =>
             {
@@ -243,14 +243,14 @@ public class Position
         foreach (var move in moves)
         {
             counter++;
-            Stopwatch? sw = null;
-            if (debug)
-            {
-                var shortNotation = move.NotationVariants
-                    .First(x => moves.Count(y => y.NotationVariants.Contains(x)) == 1);
-                Console.Write($"[{counter} / {total}]\t{shortNotation,-8}\t");
-                sw = Stopwatch.StartNew();
-            }
+            // Stopwatch? sw = null;
+            // if (debug)
+            // {
+            //     var shortNotation = move.NotationVariants
+            //         .First(x => moves.Count(y => y.NotationVariants.Contains(x)) == 1);
+            //     Console.Write($"[{counter} / {total}]\t{shortNotation,-8}\t");
+            //     sw = Stopwatch.StartNew();
+            // }
             MakeMove(move);
             double moveScore;
             if (move.CapturedPiece?.Kind == PieceKind.King)
@@ -278,18 +278,18 @@ public class Position
 
             if (debug)
             {
-                sw?.Stop();
-                Console.Write($"{moveScore,6:0.00}\t");
-                Console.Write(
-                    (sw?.Elapsed.TotalMilliseconds >= 100)
-                        ? $"{sw?.Elapsed.TotalSeconds,5:0.0}s\t"
-                        : $"{"-",6}\t");
+                // sw?.Stop();
+                // Console.Write($"{moveScore,6:0.00}\t");
+                // Console.Write(
+                //     (sw?.Elapsed.TotalMilliseconds >= 100)
+                //         ? $"{sw?.Elapsed.TotalSeconds,5:0.0}s\t"
+                //         : $"{"-",6}\t");
 
-                if (bestMove == move)
-                {
-                    Console.Write("<-");
-                }
-                Console.WriteLine();
+                // if (bestMove == move)
+                // {
+                //     Console.Write("<-");
+                // }
+                // Console.WriteLine();
 
                 FindMoveProgress?.Invoke(this, new FindMoveProgressEventArgs { Current = counter, Total = total });
             }
@@ -409,9 +409,9 @@ public class Position
                                 MakeMove(move);
                                 var nextMoves = GetMoves(playerColor, false, false);
                                 move.IsCheck = nextMoves.Any(x => x.CapturedPiece?.Kind == PieceKind.King);
+                                nextMoves = GetMoves(playerColor.OpponentColor(), true, false);
                                 if (move.IsCheck)
                                 {
-                                    nextMoves = GetMoves(playerColor.OpponentColor(), true, false);
                                     move.IsCheckmate = !nextMoves.Any();
                                 }
                                 else if (!nextMoves.Any())
