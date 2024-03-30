@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using Chessy.Engine.Events;
 using Chessy.Engine.Extensions;
 using Chessy.Engine.Pieces;
 
@@ -15,6 +16,8 @@ public class Position
     public bool[] CastlingState { get; set; }
 
     private long _nodesCounter { get; set; }
+
+    public event EventHandler<FindMoveProgressEventArgs>? FindMoveProgress;
 
     public static Position FromMoves(IEnumerable<Move> moves)
     {
@@ -230,6 +233,11 @@ public class Position
         }
 
         int total = moves.Count();
+
+        if (debug)
+        {
+            FindMoveProgress?.Invoke(this, new FindMoveProgressEventArgs { Current = 0, Total = total });
+        }
         int counter = 0;
 
         foreach (var move in moves)
@@ -282,6 +290,8 @@ public class Position
                     Console.Write("<-");
                 }
                 Console.WriteLine();
+
+                FindMoveProgress?.Invoke(this, new FindMoveProgressEventArgs { Current = counter, Total = total });
             }
 
             alpha = Math.Max(alpha, bestScore);

@@ -4,6 +4,7 @@
 @using Microsoft.AspNetCore.Html
 @using System.Text
 @using Microsoft.AspNetCore.Components.QuickGrid
+@using Chessy.Engine.Events
 
 @inject IJSRuntime JS
 
@@ -77,7 +78,7 @@
     }
 
     .grid {
-        height: 25rem;
+        height: 20rem;
         overflow-y: auto;
     }
 
@@ -147,6 +148,10 @@
 <br />
 
 <div class="container">
+    <progress value="@progressCurrent" max="@progressTotal"></progress>
+    <br>
+    <br>
+
     <label>
         AI Level:
         <input type="range" min="1" max="7" @bind-value="aiLevel"  @bind-value:event="oninput" />
@@ -235,6 +240,9 @@
 
     IList<Move> validMoves = new List<Move>();
 
+    int progressCurrent = 0;
+    int progressTotal = 1;
+
     protected override void OnInitialized()
     {
         base.OnInitialized();
@@ -318,7 +326,16 @@
             var moves = position.Moves;
             var newPosition = Position.FromMoves(moves);
             validMoves = newPosition.GetMoves(PlayerColor.OpponentColor(), true, true);
+
+            void OnProgressChange(object sender, FindMoveProgressEventArgs e)
+            {
+                progressCurrent = e.Current;
+                progressTotal = e.Total;
+            }
+            newPosition.FindMoveProgress += OnProgressChange;
             var computerMove = newPosition.FindBestMoveAB(PlayerColor.OpponentColor(), aiLevel);
+            newPosition.FindMoveProgress -= OnProgressChange;
+
             if (computerMove is not null)
             {
                 moves = newPosition.Moves;
