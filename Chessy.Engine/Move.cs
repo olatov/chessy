@@ -62,21 +62,21 @@ public class Move
 
                 if (IsCastlingShort)
                 {
-                    result.Append("0-0");
+                    result.Append("O-O");
                 }
                 else if (IsCastlingLong)
                 {
-                    result.Append("0-0-0");
+                    result.Append("O-O-O");
                 }
                 else
                 {
                     var piecePrefix = Piece.Kind switch
                     {
-                        PieceKind.King => "K",
-                        PieceKind.Queen => "Q",
-                        PieceKind.Rook => "R",
-                        PieceKind.Bishop => "B",
-                        PieceKind.Knight => "N",
+                        PieceKind.King => "♔",
+                        PieceKind.Queen => "♕",
+                        PieceKind.Rook => "♖",
+                        PieceKind.Bishop => "♗",
+                        PieceKind.Knight => "♘",
                         _ => string.Empty
                     };
 
@@ -109,11 +109,11 @@ public class Move
                     {
                         var promotionPiecePrefix = PromotionPiece switch
                         {
-                            PieceKind.King => "K",
-                            PieceKind.Queen => "Q",
-                            PieceKind.Rook => "R",
-                            PieceKind.Bishop => "B",
-                            PieceKind.Knight => "N",
+                            PieceKind.King => "♔",
+                            PieceKind.Queen => "♕",
+                            PieceKind.Rook => "♖",
+                            PieceKind.Bishop => "♗",
+                            PieceKind.Knight => "♘",
                             _ => string.Empty
                         };
 
@@ -146,21 +146,21 @@ public class Move
 
             if (IsCastlingShort)
             {
-                result.Append("0-0");
+                result.Append("O-O");
             }
             else if (IsCastlingLong)
             {
-                result.Append("0-0-0");
+                result.Append("O-O-O");
             }
             else
             {
                 var piecePrefix = Piece.Kind switch
                 {
-                    PieceKind.King => "K",
-                    PieceKind.Queen => "Q",
-                    PieceKind.Rook => "R",
-                    PieceKind.Bishop => "B",
-                    PieceKind.Knight => "N",
+                    PieceKind.King => "♔",
+                    PieceKind.Queen => "♕",
+                    PieceKind.Rook => "♖",
+                    PieceKind.Bishop => "♗",
+                    PieceKind.Knight => "♘",
                     _ => string.Empty
                 };
 
@@ -185,11 +185,11 @@ public class Move
                 {
                     var promotionPiecePrefix = PromotionPiece switch
                     {
-                        PieceKind.King => "K",
-                        PieceKind.Queen => "Q",
-                        PieceKind.Rook => "R",
-                        PieceKind.Bishop => "B",
-                        PieceKind.Knight => "N",
+                        PieceKind.King => "♔",
+                        PieceKind.Queen => "♕",
+                        PieceKind.Rook => "♖",
+                        PieceKind.Bishop => "♗",
+                        PieceKind.Knight => "♘",
                         _ => string.Empty
                     };
 
