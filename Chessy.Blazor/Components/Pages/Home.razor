@@ -78,13 +78,19 @@
     }
 
     .grid {
-        height: 20rem;
+        height: 15rem;
         overflow-y: auto;
     }
 
     .grid ::deep table {
         min-width: 100%;
     }
+
+    table {
+        font-size: 20px;
+    }
+
+
 
 </style>
 
@@ -147,41 +153,42 @@
 
 <div class="container">
     <div>
-        <label>
-            White:
-            <select @onchange="OnWhitePlayerChange" value="@whitePlayer">
-                @foreach (var option in PlayerOptions)
-                {
-                    <option value="@option.Key">@option.Value</option>
-                }
-            </select>
-        </label>
+        <FluentSelect 
+            Label="White:"
+            Items="@PlayerOptions"
+            TOption="Option<string>"
+            OptionText="@(x => x.Text)"
+            OptionValue="@(x => x.Value)"
+            ValueChanged="OnWhitePlayerChange"
+            Value="@selectedWhitePlayer">            
+        </FluentSelect>
     </div>
+    <br>
 
     <div>
-        <label>
-            Black:
-            <select @onchange="OnBlackPlayerChange" value="@blackPlayer">
-                @foreach (var option in PlayerOptions)
-                {
-                    <option value="@option.Key">@option.Value</option>
-                }
-            </select>
-        </label>
-    </div>
-
-    <div>
-        <progress value="@progressCurrent" max="@progressTotal"></progress>
+        <FluentSelect
+            Label="Black:"
+            Items="@PlayerOptions"
+            TOption="Option<string>"
+            OptionText="@(x => x.Text)"
+            OptionValue="@(x => x.Value)"
+            ValueChanged="OnBlackPlayerChange"
+            Value="@selectedBlackPlayer">            
+        </FluentSelect>
     </div>
 
     <br>
+    <div>
+        <FluentProgress Value="@progressCurrent" Max="@progressTotal"></FluentProgress>
+    </div>
+
     <br>
 
     <div class="grid">
         <QuickGrid Items="@MoveTable" Class="moveList">
-            @* <QuickGrid.PropertyColumn Property="@(p => $"{p.Number}.")" Title="#" />
-            <QuickGrid.PropertyColumn Property="@(p => p.White)" />
-            <QuickGrid.PropertyColumn Property="@(p => p.Black)" /> *@
+            <Microsoft.AspNetCore.Components.QuickGrid.PropertyColumn Property="@(p => $"{p.Number}.")" Title="" />
+            <Microsoft.AspNetCore.Components.QuickGrid.PropertyColumn Property="@(p => p.White)" />
+            <Microsoft.AspNetCore.Components.QuickGrid.PropertyColumn Property="@(p => p.Black)" />
         </QuickGrid>
     </div>
 
@@ -218,8 +225,11 @@
         }
     }
 
-    int whitePlayer = 0;
-    int blackPlayer = 4;
+    string selectedWhitePlayer = "0";
+    int whitePlayer => int.Parse(selectedWhitePlayer );
+
+    string selectedBlackPlayer = "4";
+    int blackPlayer => int.Parse(selectedBlackPlayer);
 
     Position position = new Position();
 
@@ -236,16 +246,16 @@
     int progressCurrent = 0;
     int progressTotal = 1;
 
-    IEnumerable<KeyValuePair<int, string>> PlayerOptions = new KeyValuePair<int, string>[]
+    IEnumerable<Option<string>> PlayerOptions = new Option<string>[]
     {
-        new(0, "Human"),
-        new(1, "Comp level 1"),
-        new(2, "Comp level 2"),
-        new(3, "Comp level 3"),
-        new(4, "Comp level 4"),
-        new(5, "Comp level 5"),
-        new(6, "Comp level 6"),
-        new(7, "Comp level 7"),
+        new() { Value = "0", Text = "Human" },
+        new() { Value = "1", Text = "Comp level 1" },
+        new() { Value = "2", Text = "Comp level 2" },
+        new() { Value = "3", Text = "Comp level 3" },
+        new() { Value = "4", Text = "Comp level 4" },
+        new() { Value = "5", Text = "Comp level 5" },
+        new() { Value = "6", Text = "Comp level 6" },
+        new() { Value = "7", Text = "Comp level 7" },
     };
 
     protected override void OnInitialized()
@@ -411,11 +421,9 @@
         }
     }
 
-    private void OnWhitePlayerChange(ChangeEventArgs e)
+    private void OnWhitePlayerChange(string value)
     {
-        var selectedValue = int.Parse(e.Value?.ToString() ?? "0");
-
-        whitePlayer = selectedValue;
+        selectedWhitePlayer = value;
 
         if (whitePlayer != 0 && position.ColorToMove == PieceColor.White)
         {
@@ -423,11 +431,9 @@
         }
     }
 
-    private void OnBlackPlayerChange(ChangeEventArgs e)
+    private void OnBlackPlayerChange(string value)
     {
-        var selectedValue = int.Parse(e.Value?.ToString() ?? "0");
-
-        blackPlayer = selectedValue;
+        selectedBlackPlayer = value;
 
         if (blackPlayer != 0 && position.ColorToMove == PieceColor.Black)
         {

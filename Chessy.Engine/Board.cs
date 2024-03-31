@@ -80,14 +80,14 @@ public record Board
                     {
                         double value = piece.GetValue();
                         result += value; // + (8 - Math.Abs(4 - file) - Math.Abs(4 - rank)) * 0.01 * Math.Sign(value);
-                        result += (4 - Math.Abs(4 - file)) * 0.01 * Math.Sign(value);
-                        result += (4 - Math.Abs(4 - rank)) * 0.01 * Math.Sign(value);
+                        result += (4 - Math.Abs(4 - file)) * 0.002 * Math.Sign(value);
+                        result += (4 - Math.Abs(4 - rank)) * 0.002 * Math.Sign(value);
                         //result += value + (8.0 - Math.Abs(3.5 - file) - Math.Abs(3.5 - rank)) * 0.001 * Math.Sign(value);
                         if (piece.Kind == PieceKind.Pawn)
                         {
                             result += (piece.Color == PieceColor.White)
-                                ? rank * 0.03
-                                : (rank - 8) * 0.03;
+                                ? rank * 0.01 * 0.01 * (3.5 - Math.Abs(3.5 - file))
+                                : (rank - 7) * 0.01 * (3.5 - Math.Abs(3.5 - file));
                             //result += Math.Abs(3.5 - rank);
                         }
                     }
