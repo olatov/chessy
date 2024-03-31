@@ -88,8 +88,6 @@
 
 </style>
 
-<PageTitle>Chessy</PageTitle>
-
 @{
     var legalTargets = Enumerable.Empty<(int file, int rank)>();
     if (currentMove is not null)
@@ -181,16 +179,16 @@
 
     <div class="grid">
         <QuickGrid Items="@MoveTable" Class="moveList">
-            <PropertyColumn Property="@(p => $"{p.Number}.")" Title="#" />
-            <PropertyColumn Property="@(p => p.White)" />
-            <PropertyColumn Property="@(p => p.Black)" />
+            @* <QuickGrid.PropertyColumn Property="@(p => $"{p.Number}.")" Title="#" />
+            <QuickGrid.PropertyColumn Property="@(p => p.White)" />
+            <QuickGrid.PropertyColumn Property="@(p => p.Black)" /> *@
         </QuickGrid>
     </div>
 
     <br>
     <br>
 
-    <button @onclick="@CopyPgnToClipboard">Copy PGN</button>
+    <FluentButton Appearance="Appearance.Accent" OnClick="@CopyPgnToClipboard">Copy PGN</FluentButton>
 </div>
 
 @code {
