@@ -1,4 +1,5 @@
 ﻿@page "/"
+@using System.Diagnostics
 @using Chessy.Engine.Pieces
 @using Chessy.Engine.Extensions
 @using Microsoft.AspNetCore.Html
@@ -69,7 +70,6 @@
     }
 
     .moveList {
-        font-weight: bold;
         font-family: 'FreeSerif', serif;
     }
 
@@ -176,12 +176,6 @@
         <progress value="@progressCurrent" max="@progressTotal"></progress>
     </div>
 
-    @* <label>
-        AI Level:
-        <input type="range" min="1" max="7" @bind-value="aiLevel"  @bind-value:event="oninput" />
-    </label>
-    @aiLevel *@
-
     <br>
     <br>
 
@@ -202,30 +196,9 @@
 @code {
     record MoveListItem(int Number, string White = "", string Black = "");
 
-    int aiLevel = 4;
+    List<MoveListItem> MoveList = new();
 
-    IQueryable<MoveListItem> MoveTable
-    {
-        get
-        {
-            List<MoveListItem> result = new();
-
-            @foreach (var i in Enumerable.Range(0, notation.Count))
-            {
-                if (i % 2 == 0)
-                {
-
-                    result.Add(new MoveListItem((i / 2) + 1, notation[i]));
-                }
-                else
-                {
-                    result[^1] = result[^1] with { Black = notation[i] };
-                }
-            }
-
-            return result.AsQueryable();
-        }
-    }
+    IQueryable<MoveListItem> MoveTable => MoveList.AsQueryable();
 
     string PgnText
     {
@@ -247,14 +220,10 @@
         }
     }
 
-    bool showPgn = false;
-
     int whitePlayer = 0;
     int blackPlayer = 4;
 
     Position position = new Position();
-
-    PieceColor currentColor = PieceColor.White;
 
     IList<string> notation = new List<string>();
 
@@ -286,14 +255,16 @@
         base.OnInitialized();
 
         position.ResetToStartingPosition();
+        MoveList.Clear();
+        MoveList.Add(new MoveListItem(1, "..."));
 
-        if (whitePlayer == 0) 
+        if (whitePlayer == 0)
         {
             validMoves = position.GetMoves(PieceColor.White, true, true).ToList();
         }
         else
         {
-            ComputerMove(currentColor);
+            ComputerMove(position.ColorToMove);
         }
     }
 
@@ -306,7 +277,7 @@
     {
         if (currentMove is null)
         {
-            if (position.Board.Squares[file, rank]?.Color == currentColor)
+            if (position.Board.Squares[file, rank]?.Color == position.ColorToMove)
             {
                 currentMove = new Move
                 {
@@ -345,7 +316,7 @@
     {
         var shortNotation = move.NotationVariants
             .First(x => validMoves.Count(y => y.NotationVariants.Contains(x)) == 1);
-        notation.Add(shortNotation);
+        Notate(move, shortNotation);
 
         var moves = position.Moves;
         moves.Add(move);
@@ -355,13 +326,32 @@
         PassTurn();
     }
 
+    void Notate(Move move, string notation)
+    {
+        if (move.Piece.Color == PieceColor.White)
+        {
+            MoveList[^1] = MoveList[^1] with { White = notation };
+            if (!(move.IsCheckmate || move.IsStalemate))
+            {
+                MoveList[^1] = MoveList[^1] with { Black = "..." };
+            }
+        }
+        else
+        {
+            MoveList[^1] = MoveList[^1] with { Black = notation };
+            if (!(move.IsCheckmate || move.IsStalemate))
+            {
+                MoveList.Add(new MoveListItem(MoveList.Count + 1, "..."));
+            }
+        }
+    }
+
     void ComputerMove(PieceColor playerColor)
     {
         Task.Run(() =>
         {
-            var moves = position.Moves;
-            var newPosition = Position.FromMoves(moves);
-            validMoves = newPosition.GetMoves(playerColor, true, true);
+            var positionCopy = Position.FromMoves(position.Moves);
+            validMoves = positionCopy.GetMoves(playerColor, true, true).ToList();
 
             void OnProgressChange(object? sender, FindMoveProgressEventArgs e)
             {
@@ -369,18 +359,19 @@
                 progressTotal = e.Total;
                 InvokeAsync(StateHasChanged);
             }
-            newPosition.FindMoveProgress += OnProgressChange;
+            positionCopy.FindMoveProgress += OnProgressChange;
             var aiLevel = playerColor == PieceColor.White ? whitePlayer : blackPlayer;
-            var computerMove = newPosition.FindBestMoveAB(playerColor, aiLevel);
-            newPosition.FindMoveProgress -= OnProgressChange;
+            var computerMove = positionCopy.FindBestMoveAB(playerColor, aiLevel);
+            positionCopy.FindMoveProgress -= OnProgressChange;
 
             if (computerMove is not null)
             {
-                moves = newPosition.Moves;
+                var moves = positionCopy.Moves;
                 moves.Add(computerMove);
                 var shortNotation = computerMove.NotationVariants
                     .First(x => validMoves.Count(y => y.NotationVariants.Contains(x)) == 1);
-                notation.Add(shortNotation);
+                Notate(computerMove, shortNotation);
+
                 position = Position.FromMoves(moves);
                 InvokeAsync(StateHasChanged);
             }
@@ -391,7 +382,6 @@
 
     void PassTurn()
     {
-        currentColor = currentColor.OpponentColor();
         var lastMove = position.Moves.LastOrDefault();
 
         if (position.Moves.Count > 1000)
@@ -404,18 +394,22 @@
         if (lastMove?.IsCheckmate == true || lastMove?.IsStalemate == true)
         {
             Console.WriteLine(lastMove.IsCheckmate ? "Checkmate" : "Stalemate");
-            Console.WriteLine("Game over");            
+            Console.WriteLine("Game over");
             return;
         }
 
-        var currentPlayer = currentColor == PieceColor.White ? whitePlayer : blackPlayer;
+        var currentPlayer = position.ColorToMove == PieceColor.White ? whitePlayer : blackPlayer;
         if (currentPlayer == 0)
         {
-            validMoves = position.GetMoves(currentColor, true, true);
+            var positionCopy = Position.FromMoves(position.Moves);
+            var sw = Stopwatch.StartNew();
+            validMoves = positionCopy.GetMoves(position.ColorToMove, true, true).ToList();
+            sw.Stop();
+            Console.WriteLine($"Valid moves: {validMoves.Count} in {sw.ElapsedMilliseconds} ms");
         }
         else
         {
-            ComputerMove(currentColor);
+            ComputerMove(position.ColorToMove);
         }
     }
 }

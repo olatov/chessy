@@ -171,12 +171,12 @@ public class Position
     {
         Console.WriteLine();
         var sw = Stopwatch.StartNew();
-        var moves = GetMoves(playerColor, true, true);
-        if (moves is null)
+        var moves = GetMoves(playerColor, true, true).ToArray();
+        if (moves.Length == 0)
         {
             return null;
         }
-        else if (moves.Count == 1)
+        else if (moves.Length == 1)
         {
             Console.WriteLine();
             Console.WriteLine($"[Forced]\t{moves.Single().NotationVariants.First()}");
@@ -195,7 +195,7 @@ public class Position
         Console.WriteLine($"Time: {sw.Elapsed}");
 
         if (bestMove is null) { return null; }
-        
+
         return moves.Single(x =>
             x.From.file == bestMove.From.file
             && x.From.rank == bestMove.From.rank
@@ -301,7 +301,7 @@ public class Position
             }
         }
 
-        if (moves.Count == 0)
+        if (!moves.Any())
         {
             return (null, isMaximising ? Board.MaterialValue : -Board.MaterialValue);
         }
@@ -317,9 +317,8 @@ public class Position
     }
 
 
-    public IList<Move> GetMoves(PieceColor playerColor, bool legalChecks = true, bool fullInfo = false)
+    public IEnumerable<Move> GetMoves(PieceColor playerColor, bool legalChecks = true, bool fullInfo = false)
     {
-        var result = new List<Move>();
         bool isLegal = false;
 
         foreach (int fromFile in Enumerable.Range(0, 8))
@@ -385,7 +384,7 @@ public class Position
                             if (isLegal && legalChecks)
                             {
                                 MakeMove(move);
-                                var opponentMoves = GetMoves(playerColor.OpponentColor(), false);
+                                var opponentMoves = GetMoves(playerColor.OpponentColor(), false, false);
                                 isLegal = !opponentMoves.Any(x => Board.Squares[x.To.file, x.To.rank]?.Kind == PieceKind.King);
                                 UndoMove(move);
                             }
@@ -420,18 +419,16 @@ public class Position
                                 }
                                 UndoMove(move);
                             }
-                                
+
                             if (isLegal)
                             {
-                                result.Add(move);
+                                yield return move;
                             }
                         }
                     }
                 }
             }
         }
-
-        return result;
     }
 
     public bool IsLegalMove(Move move)
