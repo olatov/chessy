@@ -151,7 +151,7 @@
     <div>
         <label>
             White:
-            <select @bind="whitePlayer">
+            <select @onchange="OnWhitePlayerChange" value="@whitePlayer">
                 @foreach (var option in PlayerOptions)
                 {
                     <option value="@option.Key">@option.Value</option>
@@ -163,7 +163,7 @@
     <div>
         <label>
             Black:
-            <select @bind="blackPlayer">
+            <select @onchange="OnBlackPlayerChange" value="@blackPlayer">
                 @foreach (var option in PlayerOptions)
                 {
                     <option value="@option.Key">@option.Value</option>
@@ -410,6 +410,30 @@
         else
         {
             ComputerMove(position.ColorToMove);
+        }
+    }
+
+    private void OnWhitePlayerChange(ChangeEventArgs e)
+    {
+        var selectedValue = int.Parse(e.Value?.ToString() ?? "0");
+
+        whitePlayer = selectedValue;
+
+        if (whitePlayer != 0 && position.ColorToMove == PieceColor.White)
+        {
+            ComputerMove(PieceColor.White);
+        }
+    }
+
+    private void OnBlackPlayerChange(ChangeEventArgs e)
+    {
+        var selectedValue = int.Parse(e.Value?.ToString() ?? "0");
+
+        blackPlayer = selectedValue;
+
+        if (blackPlayer != 0 && position.ColorToMove == PieceColor.Black)
+        {
+            ComputerMove(PieceColor.Black);
         }
     }
 }
