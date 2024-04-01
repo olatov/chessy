@@ -227,12 +227,12 @@ public class Position
         double bestScore = double.MinValue;
         Move? bestMove = null;
 
-        if (depth > 2)
+        if (depth > 0)
         {
             moves = moves.OrderBy(x =>
             {
                 MakeMove(x);
-                var (_, res) = FindMoveAB(1, -beta, -alpha, !isMaximising);
+                var (_, res) = FindMoveAB(0, -beta, -alpha, !isMaximising);
                 UndoMove(x);
                 return res;
             }).ToList();
@@ -265,7 +265,6 @@ public class Position
             }
             else
             {
-                MakeMove(move);
                 if (move.CapturedPiece?.Kind == PieceKind.King)
                 {
                     moveScore = -1.0e+6 - (depth * 1000);
@@ -273,10 +272,11 @@ public class Position
                 }
                 else
                 {
+                    MakeMove(move);
                     (_, moveScore) = FindMoveAB(depth - 1, -beta, -alpha, !isMaximising);
+                    UndoMove(move);
                 }
                 moveScore = -moveScore;
-                UndoMove(move);
 
                 if (move.IsCastlingShort || move.IsCastlingLong)
                 {
