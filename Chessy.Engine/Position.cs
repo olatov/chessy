@@ -13,7 +13,7 @@ public class Position
 
     public PieceColor ColorToMove { get; set; }
 
-    public bool[] CastlingState { get; set; }
+    public bool[] CastlingState { get; set; } = Array.Empty<bool>();
 
     private long _nodesCounter { get; set; }
 
@@ -179,11 +179,11 @@ public class Position
         else if (moves.Length == 1)
         {
             Console.WriteLine();
-            Console.WriteLine($"[Forced]\t{moves.Single().NotationVariants.First()}");
+            Console.WriteLine($"[Forced]\t{moves.Single().NotationVariants[0]}");
             return moves.Single();
         }
 
-        var checkmateMove = moves.FirstOrDefault(x => x.IsCheckmate);
+        var checkmateMove = Array.Find(moves, x => x.IsCheckmate);
         if (checkmateMove is not null)
         {
             return checkmateMove;
