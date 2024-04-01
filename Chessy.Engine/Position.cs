@@ -183,6 +183,12 @@ public class Position
             return moves.Single();
         }
 
+        var checkmateMove = moves.FirstOrDefault(x => x.IsCheckmate);
+        if (checkmateMove is not null)
+        {
+            return checkmateMove;
+        }
+
         _nodesCounter = 0;
         var (bestMove, _) = FindMoveAB(
             depth,
@@ -212,7 +218,7 @@ public class Position
             return (null, isMaximising ? Board.MaterialValue : -Board.MaterialValue);
         }
 
-        var moves = GetMoves(isMaximising ? PieceColor.White : PieceColor.Black, legalChecks);
+        var moves = GetMoves(isMaximising ? PieceColor.White : PieceColor.Black, legalChecks, fullInfo: debug);
         if (!moves.Any())
         {
             return (null, 0);
@@ -251,31 +257,38 @@ public class Position
             //     Console.Write($"[{counter} / {total}]\t{shortNotation,-8}\t");
             //     sw = Stopwatch.StartNew();
             // }
-            MakeMove(move);
+
             double moveScore;
-            if (move.CapturedPiece?.Kind == PieceKind.King)
+            if (move.IsStalemate)
             {
-                moveScore = -1.0e+6 - (depth * 1000);
-                _nodesCounter++;
+                moveScore = 0;
             }
             else
             {
-                (_, moveScore) = FindMoveAB(depth - 1, -beta, -alpha, !isMaximising);
-            }
-            moveScore = -moveScore;
-            UndoMove(move);
+                MakeMove(move);
+                if (move.CapturedPiece?.Kind == PieceKind.King)
+                {
+                    moveScore = -1.0e+6 - (depth * 1000);
+                    _nodesCounter++;
+                }
+                else
+                {
+                    (_, moveScore) = FindMoveAB(depth - 1, -beta, -alpha, !isMaximising);
+                }
+                moveScore = -moveScore;
+                UndoMove(move);
 
-            if (move.IsCastlingShort || move.IsCastlingLong)
-            {
-                moveScore += 0.3;
-            }
+                if (move.IsCastlingShort || move.IsCastlingLong)
+                {
+                    moveScore += 0.3;
+                }
 
-            if (moveScore > bestScore)
-            {
-                bestScore = moveScore;
-                bestMove = move;
+                if (moveScore > bestScore)
+                {
+                    bestScore = moveScore;
+                    bestMove = move;
+                }
             }
-
             if (debug)
             {
                 // sw?.Stop();
