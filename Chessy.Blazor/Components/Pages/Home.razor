@@ -81,7 +81,7 @@
     }
 
     .grid {
-        height: 15rem;
+        height: 21em;
         overflow-y: auto;
     }
 
@@ -108,54 +108,55 @@
     }
 }
 
-<div class="board">
-    @foreach (int file in Enumerable.Range(0, 8))
-    {
-        <div class="rank">
-        @foreach (int rank in Enumerable.Range(0, 8).Reverse())
+<FluentStack
+    HorizontalAlignment="HorizontalAlignment.Center"
+    HorizontalGap="32"
+    Width="100hh">
+
+    <div class="board">
+        @foreach (int file in Enumerable.Range(0, 8))
         {
-            var lastMove = position.Moves.LastOrDefault();
-
-            var square = position.Board.Squares[file, rank];
-            var cssClass = ((rank + file) % 2 == 0) ? "dark" : "light";
-
-            if ((rank == currentMove?.From.rank && file == currentMove?.From.file)
-                || (lastMove?.From.rank == rank && lastMove?.From.file == file)
-                || (lastMove?.To.rank == rank && lastMove?.To.file == file))
+            <div class="rank">
+            @foreach (int rank in Enumerable.Range(0, 8).Reverse())
             {
-                cssClass += " selected";
-            }
+                var lastMove = position.Moves.LastOrDefault();
 
-            if ((lastMove?.From.rank == rank && lastMove?.From.file == file)
-                || (lastMove?.To.rank == rank && lastMove?.To.file == file))
-            {
-                cssClass += " lastMove";
-            }
+                var square = position.Board.Squares[file, rank];
+                var cssClass = ((rank + file) % 2 == 0) ? "dark" : "light";
 
-            if (legalTargets.Any(x => x.rank == rank && x.file == file))
+                if ((rank == currentMove?.From.rank && file == currentMove?.From.file)
+                    || (lastMove?.From.rank == rank && lastMove?.From.file == file)
+                    || (lastMove?.To.rank == rank && lastMove?.To.file == file))
                 {
-                    cssClass += " legalTarget";
+                    cssClass += " selected";
                 }
 
-
-            if ((lastMove?.IsCheck ?? false) && square?.Kind == PieceKind.King && square.Color != lastMove.Piece.Color)
+                if ((lastMove?.From.rank == rank && lastMove?.From.file == file)
+                    || (lastMove?.To.rank == rank && lastMove?.To.file == file))
                 {
-                    cssClass += lastMove.IsCheckmate ? " checkmate" : " check";
+                    cssClass += " lastMove";
                 }
 
-            <div class="square @cssClass" @onclick="@(() => OnCellClick(file, rank))">
-                @(square?.Icon.ToUpper() ?? string.Empty)
+                if (legalTargets.Any(x => x.rank == rank && x.file == file))
+                    {
+                        cssClass += " legalTarget";
+                    }
+
+
+                if ((lastMove?.IsCheck ?? false) && square?.Kind == PieceKind.King && square.Color != lastMove.Piece.Color)
+                    {
+                        cssClass += lastMove.IsCheckmate ? " checkmate" : " check";
+                    }
+
+                <div class="square @cssClass" @onclick="@(() => OnCellClick(file, rank))">
+                    @(square?.Icon.ToUpper() ?? string.Empty)
+                </div>
+            }
             </div>
         }
-        </div>
-    }
-</div>
+    </div>
 
-<br />
-<br />
-
-<div class="container">
-    <div>
+    <FluentStack Orientation="Orientation.Vertical">
         <FluentSelect
             Label="White:"
             Items="@PlayerOptions"
@@ -165,10 +166,7 @@
             ValueChanged="OnWhitePlayerChange"
             Value="@selectedWhitePlayer">
         </FluentSelect>
-    </div>
-    <br>
 
-    <div>
         <FluentSelect
             Label="Black:"
             Items="@PlayerOptions"
@@ -178,32 +176,29 @@
             ValueChanged="OnBlackPlayerChange"
             Value="@selectedBlackPlayer">
         </FluentSelect>
-    </div>
 
-    <br>
-    <div>
-        <FluentProgress Value="@progressCurrent" Max="@progressTotal"></FluentProgress>
-    </div>
+        <FluentCheckbox @bind-Value="@alwaysPromoteToQueen" Label="Always promote to ♕Queen" />
 
-    <br>
+        <FluentDivider Style="width: 100%;" Orientation=Orientation.Horizontal Role="DividerRole.Separator"/>
 
-    <FluentCheckbox @bind-Value="@alwaysPromoteToQueen" Label="Always promote to ♕ Queen" />
-    <br>
-    <br>
+        <div class="grid">
+            <QuickGrid Items="@MoveTable" Class="moveList">
+                <Microsoft.AspNetCore.Components.QuickGrid.PropertyColumn Property="@(p => $"{p.Number}.")" Title="" />
+                <Microsoft.AspNetCore.Components.QuickGrid.PropertyColumn Property="@(p => p.White)" />
+                <Microsoft.AspNetCore.Components.QuickGrid.PropertyColumn Property="@(p => p.Black)" />
+            </QuickGrid>
+        </div>
 
-    <div class="grid">
-        <QuickGrid Items="@MoveTable" Class="moveList">
-            <Microsoft.AspNetCore.Components.QuickGrid.PropertyColumn Property="@(p => $"{p.Number}.")" Title="" />
-            <Microsoft.AspNetCore.Components.QuickGrid.PropertyColumn Property="@(p => p.White)" />
-            <Microsoft.AspNetCore.Components.QuickGrid.PropertyColumn Property="@(p => p.Black)" />
-        </QuickGrid>
-    </div>
+        <FluentProgress
+            Width="100%"
+            Stroke="ProgressStroke.Normal"
+            Value="@progressCurrent"
+            Max="@progressTotal">
+        </FluentProgress>
 
-    <br>
-    <br>
-
-    <FluentButton Appearance="Appearance.Accent" IconStart="@(new Icons.Regular.Size16.Copy())" OnClick="@CopyPgnToClipboard">Copy PGN</FluentButton>
-</div>
+        <FluentButton Appearance="Appearance.Accent" IconStart="@(new Icons.Regular.Size16.Copy())" OnClick="@CopyPgnToClipboard">Copy PGN</FluentButton>
+    </FluentStack>
+</FluentStack>
 
 @code {
     record MoveListItem(int Number, string White = "", string Black = "");
@@ -389,6 +384,9 @@
         {
             var positionCopy = Position.FromMoves(position.Moves);
             validMoves = positionCopy.GetMoves(playerColor, true, true).ToList();
+            progressTotal = validMoves.Count;
+            progressCurrent = 1;
+            InvokeAsync(StateHasChanged);
 
             void OnProgressChange(object? sender, FindMoveProgressEventArgs e)
             {
