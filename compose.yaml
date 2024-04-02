@@ -1,0 +1,11 @@
+# Please refer https://aka.ms/HTTPSinContainer on how to setup an https developer certificate for your ASP.NET Core service.
+
+services:
+  chessyblazor:
+    image: chessy
+    build:
+      context: .
+      dockerfile: Chessy.Blazor/Dockerfile
+    ports:
+      - 5083:5083
+    platform: linux/arm64

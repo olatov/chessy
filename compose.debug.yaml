@@ -1,0 +1,16 @@
+# Please refer https://aka.ms/HTTPSinContainer on how to setup an https developer certificate for your ASP.NET Core service.
+
+services:
+  chessyblazor:
+    image: chessyblazor
+    build:
+      context: .
+      dockerfile: Chessy.Blazor/Dockerfile
+      args:
+        - configuration=Debug
+    ports:
+      - 5083:5083
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+    volumes:
+      - ~/.vsdbg:/remote_debugger:rw
