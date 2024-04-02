@@ -239,16 +239,8 @@ public class Position
         }
 
         int total = moves.Count();
-
-        if (debug)
+        foreach (var (move, counter) in moves.Zip(Enumerable.Range(1, total)))
         {
-            FindMoveProgress?.Invoke(this, new FindMoveProgressEventArgs { Current = 0, Total = total });
-        }
-        int counter = 0;
-
-        foreach (var move in moves)
-        {
-            counter++;
             // Stopwatch? sw = null;
             // if (debug)
             // {

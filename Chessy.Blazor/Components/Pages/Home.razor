@@ -90,11 +90,8 @@
     }
 
     table {
-        font-size: 16px;
+        font-size: 18px;
     }
-
-
-
 </style>
 
 @{
@@ -177,7 +174,7 @@
             Value="@selectedBlackPlayer">
         </FluentSelect>
 
-        <FluentCheckbox @bind-Value="@alwaysPromoteToQueen" Label="Always promote to ♕Queen" />
+        <FluentCheckbox @bind-Value="@alwaysPromoteToQueen" Label="Always promote to ♕ queen" />
 
         <FluentDivider Style="width: 100%;" Orientation=Orientation.Horizontal Role="DividerRole.Separator"/>
 
@@ -230,7 +227,7 @@
     string selectedWhitePlayer = "0";
     int whitePlayer => int.Parse(selectedWhitePlayer );
 
-    string selectedBlackPlayer = "4";
+    string selectedBlackPlayer = "5";
     int blackPlayer => int.Parse(selectedBlackPlayer);
 
     Position position = new Position();
@@ -326,7 +323,6 @@
 
     async Task MakeMoveAsync(Move move)
     {
-        Console.WriteLine($"Move: {move} {move.IsPromotion}");
         if (move.IsPromotion)
         {
             if (alwaysPromoteToQueen)
@@ -408,6 +404,8 @@
                 Notate(computerMove, shortNotation);
 
                 position = Position.FromMoves(moves);
+
+                progressCurrent = 0;
                 InvokeAsync(StateHasChanged);
             }
 
@@ -439,9 +437,7 @@
             var positionCopy = Position.FromMoves(position.Moves);
             var sw = Stopwatch.StartNew();
             validMoves = positionCopy.GetMoves(position.ColorToMove, true, true).ToList();
-            sw.Stop();
-            Console.WriteLine($"Valid moves: {validMoves.Count} in {sw.ElapsedMilliseconds} ms");
-        }
+            sw.Stop();        }
         else
         {
             ComputerMove(position.ColorToMove);
