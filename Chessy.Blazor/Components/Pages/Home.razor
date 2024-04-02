@@ -154,14 +154,14 @@
 
 <div class="container">
     <div>
-        <FluentSelect 
+        <FluentSelect
             Label="White:"
             Items="@PlayerOptions"
             TOption="Option<string>"
             OptionText="@(x => x.Text)"
             OptionValue="@(x => x.Value)"
             ValueChanged="OnWhitePlayerChange"
-            Value="@selectedWhitePlayer">            
+            Value="@selectedWhitePlayer">
         </FluentSelect>
     </div>
     <br>
@@ -174,7 +174,7 @@
             OptionText="@(x => x.Text)"
             OptionValue="@(x => x.Value)"
             ValueChanged="OnBlackPlayerChange"
-            Value="@selectedBlackPlayer">            
+            Value="@selectedBlackPlayer">
         </FluentSelect>
     </div>
 
@@ -196,7 +196,7 @@
     <br>
     <br>
 
-    <FluentButton Appearance="Appearance.Accent" OnClick="@CopyPgnToClipboard">Copy PGN</FluentButton>
+    <FluentButton Appearance="Appearance.Accent" IconStart="@(new Icons.Regular.Size16.Copy())" OnClick="@CopyPgnToClipboard">Copy PGN</FluentButton>
 </div>
 
 @code {
