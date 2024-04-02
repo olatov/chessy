@@ -1,12 +1,10 @@
 ﻿@page "/"
 @using System.Diagnostics
-@using Chessy.Engine.Pieces
-@using Chessy.Engine.Extensions
-@using Microsoft.AspNetCore.Html
 @using System.Text
 @using Microsoft.AspNetCore.Components.QuickGrid
-@using Chessy.Engine.Events
 @using Chessy.Blazor.Components.Dialogs;
+@using Chessy.Engine.Events
+@using Chessy.Engine.Pieces
 
 @inject IJSRuntime _js
 @inject IDialogService _dialogService
@@ -73,7 +71,6 @@
     }
 
     .moveList {
-        font-family: 'FreeSerif', serif;
     }
 
     .container {
@@ -90,7 +87,7 @@
     }
 
     table {
-        font-size: 18px;
+        font-size: 16px;
     }
 </style>
 
@@ -230,7 +227,8 @@
     {
         get
         {
-            var asPgn = (string value) => value.Replace("♔", "K")
+            var asPgn = (string value) => value
+                .Replace("♔", "K")
                 .Replace("♕", "Q")
                 .Replace("♖", "R")
                 .Replace("♗", "B")
@@ -378,8 +376,18 @@
         PassTurn();
     }
 
-    void Notate(Move move, string notation)
+    void Notate(Move move, string notation, bool isLetter = true)
     {
+        if (isLetter)
+        {
+            notation = notation
+                .Replace("♔", "K")
+                .Replace("♕", "Q")
+                .Replace("♖", "R")
+                .Replace("♗", "B")
+                .Replace("♘", "N");
+        }
+
         if (move.Piece.Color == PieceColor.White)
         {
             MoveList[^1] = MoveList[^1] with { White = notation };
