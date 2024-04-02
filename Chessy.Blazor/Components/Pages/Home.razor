@@ -81,7 +81,7 @@
     }
 
     .grid {
-        height: 21em;
+        max-height: 18em;
         overflow-y: auto;
     }
 
@@ -111,10 +111,26 @@
     Width="100hh">
 
     <div class="board">
-        @foreach (int file in Enumerable.Range(0, 8))
+        @{
+            var files = Enumerable.Empty<int>();
+            var ranks = Enumerable.Empty<int>();
+
+            if (flipBoard)
+            {
+                files = Enumerable.Range(0, 8).Reverse();
+                ranks = Enumerable.Range(0, 8);
+            }
+            else
+            {
+                files = Enumerable.Range(0, 8);
+                ranks = Enumerable.Range(0, 8).Reverse();
+            }
+        }
+
+        @foreach (int file in files)
         {
             <div class="rank">
-            @foreach (int rank in Enumerable.Range(0, 8).Reverse())
+            @foreach (int rank in ranks)
             {
                 var lastMove = position.Moves.LastOrDefault();
 
@@ -174,7 +190,13 @@
             Value="@selectedBlackPlayer">
         </FluentSelect>
 
-        <FluentCheckbox @bind-Value="@alwaysPromoteToQueen" Label="Always promote to ♕ queen" />
+        <FluentSpacer />
+
+        <FluentButton Appearance="Appearance.Accent" IconStart="@(new Icons.Regular.Size16.ArrowRepeatAll())" OnClick="@(() => { flipBoard = !flipBoard; })">Flip board</FluentButton>
+
+        <FluentSpacer />
+
+        <FluentCheckbox @bind-Value="@alwaysPromoteToQueen" Label="Promote to Queen automatically" />
 
         <FluentDivider Style="width: 100%;" Orientation=Orientation.Horizontal Role="DividerRole.Separator"/>
 
@@ -239,6 +261,8 @@
     string hint = string.Empty;
 
     bool alwaysPromoteToQueen = true;
+
+    bool flipBoard = false;
 
     Move? currentMove = null;
 
