@@ -6,8 +6,10 @@
 @using System.Text
 @using Microsoft.AspNetCore.Components.QuickGrid
 @using Chessy.Engine.Events
+@using Chessy.Blazor.Components.Dialogs;
 
-@inject IJSRuntime JS
+@inject IJSRuntime _js
+@inject IDialogService _dialogService
 
 
 <style>
@@ -88,7 +90,7 @@
     }
 
     table {
-        font-size: 20px;
+        font-size: 16px;
     }
 
 
@@ -185,6 +187,10 @@
 
     <br>
 
+    <FluentCheckbox @bind-Value="@alwaysPromoteToQueen" Label="Always promote to ♕ Queen" />
+    <br>
+    <br>
+
     <div class="grid">
         <QuickGrid Items="@MoveTable" Class="moveList">
             <Microsoft.AspNetCore.Components.QuickGrid.PropertyColumn Property="@(p => $"{p.Number}.")" Title="" />
@@ -240,6 +246,8 @@
 
     string hint = string.Empty;
 
+    bool alwaysPromoteToQueen = true;
+
     Move? currentMove = null;
 
     IList<Move> validMoves = new List<Move>();
@@ -279,10 +287,10 @@
 
     async Task CopyPgnToClipboard()
     {
-        await JS.InvokeVoidAsync("navigator.clipboard.writeText", PgnText);
+        await _js.InvokeVoidAsync("navigator.clipboard.writeText", PgnText);
     }
 
-    void OnCellClick(int file, int rank)
+    async Task OnCellClick(int file, int rank)
     {
         if (currentMove is null)
         {
@@ -305,7 +313,7 @@
                 && x.To.rank == currentMove.To.rank);
             if (moveIndex >= 0)
             {
-                MakeMove(moveIndex);
+                await MakeMoveAsync(moveIndex);
             }
             else
             {
@@ -316,13 +324,33 @@
         }
     }
 
-    void MakeMove(int moveIndex)
+    async Task MakeMoveAsync(int moveIndex)
     {
-        MakeMove(validMoves[moveIndex]);
+        await MakeMoveAsync(validMoves[moveIndex]);
     }
 
-    void MakeMove(Move move)
+    async Task MakeMoveAsync(Move move)
     {
+        Console.WriteLine($"Move: {move} {move.IsPromotion}");
+        if (move.IsPromotion)
+        {
+            if (alwaysPromoteToQueen)
+            {
+                move.PromotionPiece = PieceKind.Queen;
+            }
+            else
+            {
+                var dialog = await _dialogService.ShowDialogAsync<PromotionDialog>(
+                    PieceKind.Queen,
+                    new DialogParameters
+                    {
+                        SecondaryActionEnabled = false,
+                    });
+                var result = await dialog.Result;
+                move.PromotionPiece = (result.Data as PieceKind?) ?? PieceKind.Queen;
+            }
+        }
+
         var shortNotation = move.NotationVariants
             .First(x => validMoves.Count(y => y.NotationVariants.Contains(x)) == 1);
         Notate(move, shortNotation);

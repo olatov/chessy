@@ -9,7 +9,7 @@ public class Move
 
     public (int file, int rank) To { get; set; }
 
-    public IPiece Piece { get; set; }
+    public IPiece? Piece { get; set; }
 
     public bool IsCheck { get; set; }
 
