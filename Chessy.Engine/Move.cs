@@ -116,11 +116,6 @@ public class Move(IPiece piece, Coords from, Coords to)
 
                 result.Append(toFile).Append(toRank);
 
-                if (IsEnPassantCapture)
-                {
-                    result.Append(" e.p.");
-                }
-
                 if (IsPromotion)
                 {
                     Trace.Assert(PromotionPieceKind is not null);

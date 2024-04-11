@@ -552,11 +552,11 @@ public class Position
                 switch (piece.Color)
                 {
                     case PieceColor.White:
-                        if ((move.To.Rank - move.From.Rank == 1)
+                        if (move.To.Rank - move.From.Rank == 1
                             && ((move.From.File == move.To.File && Board.Squares[move.To.File, move.To.Rank] is null)
                                 || (Math.Abs(move.From.File - move.To.File) == 1
                                     && (Board.Squares[move.To.File, move.To.Rank]?.Color == PieceColor.Black
-                                        || (move.To == EnPassantTarget)))))
+                                        || move.To == EnPassantTarget))))
                         {
                             return true;
                         }
@@ -575,7 +575,9 @@ public class Position
                     case PieceColor.Black:
                         if ((move.To.Rank - move.From.Rank == -1)
                             && ((move.From.File == move.To.File && Board.Squares[move.To.File, move.To.Rank] is null)
-                                || (Math.Abs(move.From.File - move.To.File) == 1 && Board.Squares[move.To.File, move.To.Rank]?.Color == PieceColor.White)))
+                                || (Math.Abs(move.From.File - move.To.File) == 1 
+                                    && (Board.Squares[move.To.File, move.To.Rank]?.Color == PieceColor.White
+                                        || move.To == EnPassantTarget))))
                         {
                             return true;
                         }
