@@ -14,6 +14,14 @@
         margin: 0;
     }
 
+@@font-face {
+    font-family: 'FreeSerif';
+    src: url('FreeSerif.woff') format('woff');
+    /* Add other font formats if necessary (e.g., .ttf, .otf) */
+    font-weight: normal;
+    font-style: normal;
+}
+
   .board {
     display: grid;
     grid-template-columns: repeat(8, 72px);
@@ -197,7 +205,6 @@
                 Class="moveList"
                 RowStyle="@((r) => "border: none;")"
                 GridTemplateColumns="2fr 3fr 3fr">
-
 
                 <PropertyColumn
                     Title=""
@@ -431,8 +438,10 @@
 
     void ComputerMove(PieceColor playerColor)
     {
+        Console.WriteLine($"Computer move for {playerColor}");
         Task.Run(async () =>
         {
+            Console.WriteLine("Thinking task started...");
             var positionCopy = Position.FromMoves(position.Moves);
             validMoves = positionCopy.GetMoves(playerColor, true, true).ToList();
             progressTotal = validMoves.Count;
@@ -444,10 +453,11 @@
                 progressCurrent = e.Current;
                 progressTotal = e.Total;
                 await InvokeAsync(StateHasChanged);
+                await Task.Delay(1);
             }
             positionCopy.FindMoveProgress += OnProgressChange;
             var aiLevel = playerColor == PieceColor.White ? whitePlayer : blackPlayer;
-            var computerMove = positionCopy.FindBestMoveAB(playerColor, aiLevel);
+            var computerMove = await positionCopy.FindBestMoveABAsync(playerColor, aiLevel);
             positionCopy.FindMoveProgress -= OnProgressChange;
 
             if (computerMove is not null)

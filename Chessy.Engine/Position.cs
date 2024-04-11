@@ -177,11 +177,11 @@ public class Position
         }
     }
 
-    public Move? FindBestMoveAB(PieceColor playerColor, int depth = 1)
+    public async Task<Move?> FindBestMoveABAsync(PieceColor playerColor, int depth = 1)
     {
-        Console.WriteLine();
-        var sw = Stopwatch.StartNew();
+        Console.WriteLine("Finding best move...");
         var moves = GetMoves(playerColor, true, true).ToArray();
+        Console.WriteLine($"Moves: {moves.Length}");
         if (moves.Length == 0)
         {
             return null;
@@ -200,12 +200,15 @@ public class Position
         }
 
         _nodesCounter = 0;
-        var (bestMove, _) = FindMoveAB(
+        Console.WriteLine($"Before FindBestMoveABAsync");
+        var sw = Stopwatch.StartNew();
+        var (bestMove, _) = await FindMoveABAsync(
             depth,
             isMaximising: playerColor == PieceColor.White,
             debug: true,
             legalChecks: true);
         sw.Stop();
+        Console.WriteLine($"After FindBestMoveABAsync");
 
         Console.WriteLine($"Nodes: {_nodesCounter / 1.0e+6:0.0}m ({_nodesCounter / sw.Elapsed.TotalSeconds / 1000.0:0.0}k / sec)");
         Console.WriteLine($"Time: {sw.Elapsed}");
@@ -220,7 +223,7 @@ public class Position
             && x.PromotionPiece == bestMove.PromotionPiece);
     }
 
-    public (Move? move, double score) FindMoveAB(int depth, double alpha = double.MinValue, double beta = double.MaxValue, bool isMaximising = true, bool legalChecks = false, bool debug = false)
+    public async Task<(Move? move, double score)> FindMoveABAsync(int depth, double alpha = double.MinValue, double beta = double.MaxValue, bool isMaximising = true, bool legalChecks = false, bool debug = false)
     {
         if (depth == 0)
         {
@@ -237,20 +240,40 @@ public class Position
         double bestScore = double.MinValue;
         Move? bestMove = null;
 
-        if (depth > 0)
+        var moveScores = moves.Select(x => (Move: x, Score: 0.0)).ToArray();
+        foreach (int index in Enumerable.Range(0, moves.Count()))
         {
-            moves = moves.OrderBy(x =>
-            {
-                MakeMove(x);
-                var (_, res) = FindMoveAB(0, -beta, -alpha, !isMaximising);
-                UndoMove(x);
-                return res;
-            }).ToList();
+            var move = moveScores[index].Move;
+            MakeMove(move);
+            //var (_, res) = await FindMoveABAsync(0, -beta, -alpha, !isMaximising);
+            moveScores[index].Score = isMaximising ? Board.MaterialValue : -Board.MaterialValue;
+            _nodesCounter++;
+            UndoMove(move);
+            //moveScores[index].Score = res;
         }
+
+        moves = moveScores.OrderByDescending(x => x.Score).Select(x => x.Move);
+
+        // if (depth > 0)
+        // {
+        //     moves = moves.OrderBy(async x =>
+        //     {
+        //         MakeMove(x);
+        //         var (_, res) = await FindMoveABAsync(0, -beta, -alpha, !isMaximising);
+        //         UndoMove(x);
+        //         return res;
+        //     }).ToList();
+        // }
 
         int total = moves.Count();
         foreach (var (move, counter) in moves.Zip(Enumerable.Range(1, total)))
         {
+            if (debug)
+            {
+                Console.WriteLine($"[{counter} / {total}]\t");
+                FindMoveProgress?.Invoke(this, new FindMoveProgressEventArgs { Current = counter, Total = total });
+                await Task.Delay(1);
+            }
             // Stopwatch? sw = null;
             // if (debug)
             // {
@@ -275,7 +298,7 @@ public class Position
                 else
                 {
                     MakeMove(move);
-                    (_, moveScore) = FindMoveAB(depth - 1, -beta, -alpha, !isMaximising);
+                    (_, moveScore) = await FindMoveABAsync(depth - 1, -beta, -alpha, !isMaximising);
                     UndoMove(move);
                 }
                 moveScore = -moveScore;
@@ -305,8 +328,6 @@ public class Position
                 //     Console.Write("<-");
                 // }
                 // Console.WriteLine();
-
-                FindMoveProgress?.Invoke(this, new FindMoveProgressEventArgs { Current = counter, Total = total });
             }
 
             alpha = Math.Max(alpha, bestScore);

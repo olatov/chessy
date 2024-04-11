@@ -5,7 +5,7 @@ namespace Chessy.Engine;
 
 public record Board
 {
-    public IPiece?[,] Squares = new Piece?[8, 8];
+    public IPiece?[,] Squares = new IPiece?[8, 8];
 
     public bool IsClearBetween((int file, int rank) square1, (int file, int rank) square2)
     {
