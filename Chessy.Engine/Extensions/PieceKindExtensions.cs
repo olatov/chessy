@@ -31,4 +31,18 @@ public static class PieceKindExtensions
             _ => string.Empty
         };
     }
+
+    public static string Algebraic(this PieceKind pieceKind)
+    {
+        return pieceKind switch
+        {
+            PieceKind.King => "K",
+            PieceKind.Queen => "Q",
+            PieceKind.Rook => "R",
+            PieceKind.Bishop => "B",
+            PieceKind.Knight => "N",
+            PieceKind.Pawn => "",
+            _ => string.Empty
+        };
+    }
 }

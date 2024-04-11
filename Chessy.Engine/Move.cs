@@ -47,11 +47,28 @@ public class Move(IPiece piece, Coords from, Coords to)
 
     public PieceKind? PromotionPieceKind { get; set; }
 
-    public bool IsPromotion { get => PromotionPieceKind is not null; }
+    public bool IsPromotion { get; set; } = false;
 
     public bool CouldCastleShort { get; set; }
 
     public bool CouldCastleLong { get; set; }
+
+    public Move Copy()
+    {
+        return new Move(Piece, From, To)
+        {
+            IsCheck = IsCheck,
+            IsCheckmate = IsCheckmate,
+            IsStalemate = IsStalemate,
+            CapturedPiece = CapturedPiece,
+            IsEnPassantCapture = IsEnPassantCapture,
+            CastlingRook = CastlingRook,
+            IsPromotion = IsPromotion,
+            PromotionPieceKind = PromotionPieceKind,
+            CouldCastleShort = CouldCastleShort,
+            CouldCastleLong = CouldCastleLong
+        };
+    }
 
     public IEnumerable<string> GetNotationVariants()
     {
@@ -76,7 +93,7 @@ public class Move(IPiece piece, Coords from, Coords to)
                 var toFile = (char)((char)To.File + 'a');
                 var toRank = (char)((char)To.Rank + '1');
 
-                result.Append(Piece!.Kind.Figurine());
+                result.Append(Piece!.Kind.Algebraic());
 
                 if (variant == 2 || variant == 4 || (Piece?.Kind == PieceKind.Pawn && IsCapture))
                 {
@@ -99,7 +116,7 @@ public class Move(IPiece piece, Coords from, Coords to)
                 if (IsPromotion)
                 {
                     Trace.Assert(PromotionPieceKind is not null);
-                    result.Append('=').Append(PromotionPieceKind.Value.Figurine());
+                    result.Append('=').Append(PromotionPieceKind.Value.Algebraic());
                 }
             }
 

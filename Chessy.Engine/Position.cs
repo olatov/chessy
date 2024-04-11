@@ -354,8 +354,9 @@ public class Position
                             CapturedPiece = toSquare,
                         };
 
-                        if ((fromSquare.Kind == PieceKind.Pawn) && (toRank == 0 || toRank == 7))
+                        if (move.Piece.Kind == PieceKind.Pawn && move.To.Rank is 0 or 7)
                         {
+                            move.IsPromotion = true;
                             move.PromotionPieceKind = PieceKind.Queen;
                         }
 
@@ -429,10 +430,20 @@ public class Position
                         if (isLegal)
                         {
                             yield return move;
+
+                            if (move.IsPromotion)
+                            {
+                                foreach (var promotionPieceKind in
+                                    new[] { PieceKind.Rook, PieceKind.Bishop, PieceKind.Knight })
+                                {
+                                    var moveCopy = move.Copy();
+                                    moveCopy.PromotionPieceKind = promotionPieceKind;
+                                    yield return moveCopy;
+                                }
+                            }
                         }
                     }
                 }
-
             }
         }
     }
