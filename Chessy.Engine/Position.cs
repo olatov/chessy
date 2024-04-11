@@ -189,7 +189,7 @@ public class Position
         else if (moves.Length == 1)
         {
             Console.WriteLine();
-            Console.WriteLine($"[Forced]\t{moves.Single().NotationVariants[0]}");
+            Console.WriteLine($"[Forced]\t{moves.Single().NotationVariants.First()}");
             return moves.Single();
         }
 
@@ -355,107 +355,102 @@ public class Position
             foreach (int fromRank in Enumerable.Range(0, 8))
             {
                 var fromSquare = Board.Squares[fromFile, fromRank];
-                if (fromSquare?.Color == playerColor)
+                if (fromSquare?.Color != playerColor) { continue; }
+
+                foreach (int toFile in Enumerable.Range(0, 8))
                 {
-                    foreach (int toFile in Enumerable.Range(0, 8))
+                    foreach (int toRank in Enumerable.Range(0, 8))
                     {
-                        foreach (int toRank in Enumerable.Range(0, 8))
+                        var toSquare = Board.Squares[toFile, toRank];
+                        if (fromSquare.Color == toSquare?.Color) { continue; }
+
+                        var move = new Move
                         {
-                            var toSquare = Board.Squares[toFile, toRank];
-                            if (fromSquare.Color == toSquare?.Color)
+                            Piece = fromSquare,
+                            CapturedPiece = toSquare,
+                            From = (fromFile, fromRank),
+                            To = (toFile, toRank),
+                        };
+
+                        if ((fromSquare.Kind == PieceKind.Pawn) && (toRank == 0 || toRank == 7))
+                        {
+                            move.PromotionPiece = PieceKind.Queen;
+                        }
+
+                        if (move.IsCastlingShort)
+                        {
+                            if (Board.Squares[5, fromRank] is not null)
                             {
                                 continue;
                             }
-
-                            var move = new Move
+                            move.CastlingRook = Board.Squares[7, fromRank];
+                        }
+                        else if (move.IsCastlingLong)
+                        {
+                            if (Board.Squares[3, fromRank] is not null)
                             {
-                                Piece = fromSquare,
-                                CapturedPiece = toSquare,
-                                From = (fromFile, fromRank),
-                                To = (toFile, toRank),
-                            };
-
-                            if ((fromSquare.Kind == PieceKind.Pawn) && (toRank == 0 || toRank == 7))
-                            {
-                                move.PromotionPiece = PieceKind.Queen;
+                                continue;
                             }
+                            move.CastlingRook = Board.Squares[0, fromRank];
+                        }
 
+                        if (fromSquare.Color == PieceColor.White)
+                        {
+                            move.CouldCastleShort = CastlingState[0];
+                            move.CouldCastleLong = CastlingState[1];
+                        }
+                        else
+                        {
+                            move.CouldCastleShort = CastlingState[2];
+                            move.CouldCastleLong = CastlingState[3];
+                        }
+
+                        isLegal = IsLegalMove(move);
+
+                        if (isLegal && legalChecks)
+                        {
+                            MakeMove(move);
+                            var opponentMoves = GetMoves(playerColor.OpponentColor(), false, false);
+                            isLegal = !opponentMoves.Any(x => Board.Squares[x.To.file, x.To.rank]?.Kind == PieceKind.King);
+                            UndoMove(move);
+                        }
+
+                        if (isLegal && legalChecks && (move.IsCastlingShort || move.IsCastlingLong))
+                        {
+                            var opponentMoves = GetMoves(playerColor.OpponentColor(), false);
+                            isLegal = !opponentMoves.Any(x => Board.Squares[x.To.file, x.To.rank]?.Kind == PieceKind.King);
                             if (move.IsCastlingShort)
                             {
-                                if (Board.Squares[5, fromRank] is not null)
-                                {
-                                    continue;
-                                }
-                                move.CastlingRook = Board.Squares[7, fromRank];
+                                isLegal = isLegal && !opponentMoves.Any(x => x.To.file == (move.To.file - 1) && x.To.rank == move.To.rank);
                             }
                             else if (move.IsCastlingLong)
                             {
-                                if (Board.Squares[3, fromRank] is not null)
-                                {
-                                    continue;
-                                }
-                                move.CastlingRook = Board.Squares[0, fromRank];
+                                isLegal = isLegal && !opponentMoves.Any(x => x.To.file == (move.To.file + 1) && x.To.rank == move.To.rank);
                             }
+                        }
 
-                            if (fromSquare.Color == PieceColor.White)
-                            {
-                                move.CouldCastleShort = CastlingState[0];
-                                move.CouldCastleLong = CastlingState[1];
-                            }
-                            else
-                            {
-                                move.CouldCastleShort = CastlingState[2];
-                                move.CouldCastleLong = CastlingState[3];
-                            }
+                        if (isLegal && fullInfo)
+                        {
+                            MakeMove(move);
+                            var nextMoves = GetMoves(playerColor, false, false);
+                            move.IsCheck = nextMoves.Any(x => x.CapturedPiece?.Kind == PieceKind.King);
 
-                            isLegal = IsLegalMove(move);
-
-                            if (isLegal && legalChecks)
+                            bool opponentHasMoves = GetMoves(playerColor.OpponentColor(), true, false).Any();
+                            if (!opponentHasMoves)
                             {
-                                MakeMove(move);
-                                var opponentMoves = GetMoves(playerColor.OpponentColor(), false, false);
-                                isLegal = !opponentMoves.Any(x => Board.Squares[x.To.file, x.To.rank]?.Kind == PieceKind.King);
-                                UndoMove(move);
+                                move.IsCheckmate = move.IsCheck;
+                                move.IsStalemate = !move.IsCheck;
                             }
+                            UndoMove(move);
+                        }
 
-                            if (isLegal && legalChecks && (move.IsCastlingShort || move.IsCastlingLong))
-                            {
-                                var opponentMoves = GetMoves(playerColor.OpponentColor(), false);
-                                isLegal = !opponentMoves.Any(x => Board.Squares[x.To.file, x.To.rank]?.Kind == PieceKind.King);
-                                if (move.IsCastlingShort)
-                                {
-                                    isLegal = isLegal && !opponentMoves.Any(x => x.To.file == (move.To.file - 1) && x.To.rank == move.To.rank);
-                                }
-                                else if (move.IsCastlingLong)
-                                {
-                                    isLegal = isLegal && !opponentMoves.Any(x => x.To.file == (move.To.file + 1) && x.To.rank == move.To.rank);
-                                }
-                            }
-
-                            if (fullInfo)
-                            {
-                                MakeMove(move);
-                                var nextMoves = GetMoves(playerColor, false, false);
-                                move.IsCheck = nextMoves.Any(x => x.CapturedPiece?.Kind == PieceKind.King);
-                                nextMoves = GetMoves(playerColor.OpponentColor(), true, false);
-                                if (move.IsCheck)
-                                {
-                                    move.IsCheckmate = !nextMoves.Any();
-                                }
-                                else if (!nextMoves.Any())
-                                {
-                                    move.IsStalemate = true;
-                                }
-                                UndoMove(move);
-                            }
-
-                            if (isLegal)
-                            {
-                                yield return move;
-                            }
+                        if (isLegal)
+                        {
+                            yield return move;
                         }
                     }
                 }
+
             }
         }
     }

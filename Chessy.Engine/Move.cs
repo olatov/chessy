@@ -49,11 +49,10 @@ public class Move
 
     public bool CouldCastleLong { get; set; }
 
-    public IList<string> NotationVariants
+    public IEnumerable<string> NotationVariants
     {
         get
         {
-            var notations = new List<string>();
             var result = new StringBuilder();
 
             foreach (var variant in Enumerable.Range(1, 4))
@@ -131,10 +130,8 @@ public class Move
                     result.Append("+");
                 }
 
-                notations.Add(result.ToString());
+                yield return result.ToString();
             }
-
-            return notations;
         }
     }
 
