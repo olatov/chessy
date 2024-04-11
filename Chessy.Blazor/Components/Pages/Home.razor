@@ -9,98 +9,89 @@
 @inject IJSRuntime _js
 @inject IDialogService _dialogService
 
-
 <style>
-     body {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
+    body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
     }
 
-    .board {
-      display: grid;
-      grid-template-columns: repeat(8, 72px);
-      grid-template-rows: repeat(8, 72px);
-      border: solid gray;
-    }
+  .board {
+    display: grid;
+    grid-template-columns: repeat(8, 72px);
+    grid-template-rows: repeat(8, 72px);
+    border: solid gray;
+    user-select: none;
+  }
 
-    .square {
-      width: 72px;
-      height: 72px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-size: 72px;
-      cursor: pointer;
-      opacity: 1.0;
-      border: none;
-      color: black;
-      font-family: 'FreeSerif', serif;
-    }
+  .square {
+    width: 72px;
+    height: 72px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 72px;
+    cursor: pointer;
+    opacity: 1.0;
+    border: none;
+    color: black;
+    font-family: 'FreeSerif', serif;
+  }
 
-    .selected {
-        background-color: rgb(108, 249, 108) !important;
-    }
+  .selected {
+      background-color: rgb(108, 249, 108) !important;
+  }
 
-    .lastMove {
-        background-color: yellow !important;
-    }
+  .lastMove {
+      background-color: yellow !important;
+  }
 
-    .legalTarget {
-        background-color: rgb(105, 223, 105) !important; /* Modified color */
-    }
+  .legalTarget {
+      background-color: rgb(105, 223, 105) !important; /* Modified color */
+  }
 
-    .check {
-        background-color: lightcoral !important;
-    }
+  .check {
+      background-color: lightcoral !important;
+  }
 
-    .checkmate {
-        background-color: darkred !important;
-    }
+  .checkmate {
+      background-color: darkred !important;
+  }
 
-    .light {
-        background-color: white;
-        filter: brightness(95%);
-    }
+  .light {
+      background-color: white;
+      filter: brightness(95%);
+  }
 
-    .dark {
-        background-color: white;
-        filter: brightness(85%);
-    }
+  .dark {
+      background-color: white;
+      filter: brightness(85%);
+  }
 
-    .moveList {
-    }
+  .container {
+      margin: 32px;
+  }
 
-    .container {
-        margin: 32px;
-    }
+  .reversed {
+      flex-direction: column-reverse !important;
+  }
 
-    .grid {
-        max-height: 18em;
-        overflow-y: auto;
-    }
+  .grid {
+      max-height: 18em;
+      overflow-y: auto;
+  }
 
-    .grid ::deep table {
-        min-width: 100%;
-    }
+  .grid table {
+      min-width: 100%;
+  }
 
-    table {
-        font-size: 16px;
-    }
+  table {
+      font-size: 16px;
+  }
+
 </style>
-
-@{
-    var legalTargets = Enumerable.Empty<(int file, int rank)>();
-    if (currentMove is not null)
-    {
-        legalTargets = validMoves.Where(x =>
-                x.From.file == currentMove.From.file
-                && x.From.rank == currentMove.From.rank)
-            .Select(x => x.To);
-    }
-}
 
 <FluentStack
     HorizontalAlignment="HorizontalAlignment.Center"
@@ -167,25 +158,33 @@
     </div>
 
     <FluentStack Orientation="Orientation.Vertical">
-        <FluentSelect
-            Label="White:"
-            Items="@PlayerOptions"
-            TOption="Option<string>"
-            OptionText="@(x => x.Text)"
-            OptionValue="@(x => x.Value)"
-            ValueChanged="OnWhitePlayerChange"
-            Value="@selectedWhitePlayer">
-        </FluentSelect>
+        @{ var cssClass = flipBoard ? string.Empty : "reversed"; }
 
-        <FluentSelect
-            Label="Black:"
-            Items="@PlayerOptions"
-            TOption="Option<string>"
-            OptionText="@(x => x.Text)"
-            OptionValue="@(x => x.Value)"
-            ValueChanged="OnBlackPlayerChange"
-            Value="@selectedBlackPlayer">
-        </FluentSelect>
+        <FluentStack Orientation="Orientation.Vertical" Class="@cssClass">
+            <div>
+                <FluentSelect
+                    Label="White:"
+                    Items="@PlayerOptions"
+                    TOption="Option<string>"
+                    OptionText="@(x => x.Text)"
+                    OptionValue="@(x => x.Value)"
+                    ValueChanged="OnWhitePlayerChange"
+                    Value="@selectedWhitePlayer">
+                </FluentSelect>
+            </div>
+
+            <div>
+                <FluentSelect
+                    Label="Black:"
+                    Items="@PlayerOptions"
+                    TOption="Option<string>"
+                    OptionText="@(x => x.Text)"
+                    OptionValue="@(x => x.Value)"
+                    ValueChanged="OnBlackPlayerChange"
+                    Value="@selectedBlackPlayer">
+                </FluentSelect>
+            </div>
+        </FluentStack>
 
         <FluentSpacer />
 
@@ -193,15 +192,19 @@
 
         <FluentSpacer />
 
-        <FluentCheckbox @bind-Value="@alwaysPromoteToQueen" Label="Promote to Queen automatically" />
+        <FluentCheckbox @bind-Value="@alwaysPromoteToQueen" Label="Auto promote to Queen" />
 
         <FluentDivider Style="width: 100%;" Orientation=Orientation.Horizontal Role="DividerRole.Separator"/>
 
         <div class="grid">
             <QuickGrid Items="@MoveTable" Class="moveList">
                 <Microsoft.AspNetCore.Components.QuickGrid.PropertyColumn Property="@(p => $"{p.Number}.")" Title="" />
-                <Microsoft.AspNetCore.Components.QuickGrid.PropertyColumn Property="@(p => p.White)" />
-                <Microsoft.AspNetCore.Components.QuickGrid.PropertyColumn Property="@(p => p.Black)" />
+                <Microsoft.AspNetCore.Components.QuickGrid.PropertyColumn
+                    Title="White"
+                    Property="@(p => p.White ?? "...")" />
+                <Microsoft.AspNetCore.Components.QuickGrid.PropertyColumn
+                    Title="Black"
+                    Property="@(p => p.Black ?? ((p.White != null && !position.IsGameOver) ? "..." : string.Empty))" />
             </QuickGrid>
         </div>
 
@@ -212,12 +215,14 @@
             Max="@progressTotal">
         </FluentProgress>
 
-        <FluentButton Appearance="Appearance.Accent" IconStart="@(new Icons.Regular.Size16.Copy())" OnClick="@CopyPgnToClipboard">Copy PGN</FluentButton>
+        <FluentButton Appearance="Appearance.Accent"
+            IconStart="@(new Icons.Regular.Size16.Copy())"
+            OnClick="@CopyPgnToClipboard">Copy PGN</FluentButton>
     </FluentStack>
 </FluentStack>
 
 @code {
-    record MoveListItem(int Number, string White = "", string Black = "");
+    record MoveListItem(int Number, string? White = null, string? Black = null);
 
     List<MoveListItem> MoveList = new();
 
@@ -234,10 +239,17 @@
                 .Replace("♗", "B")
                 .Replace("♘", "N");
 
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
             foreach (var item in MoveTable)
             {
-                sb.Append($"{item.Number}. {asPgn(item.White)} {asPgn(item.Black)} ");
+                if (item.White is not null)
+                {
+                    sb.Append($"{item.Number}. {asPgn(item.White)} ");
+                    if (item.Black is not null)
+                    {
+                        sb.Append($"{asPgn(item.Black)} ");
+                    }
+                }
             }
 
             return sb.ToString();
@@ -266,6 +278,13 @@
 
     IList<Move> validMoves = new List<Move>();
 
+    IEnumerable<(int file, int rank)> legalTargets => currentMove is not null
+        ? validMoves.Where(x =>
+            x.From.file == currentMove.From.file
+            && x.From.rank == currentMove.From.rank)
+        .Select(x => x.To)
+        : Enumerable.Empty<(int file, int rank)>();
+
     int progressCurrent = 0;
     int progressTotal = 1;
 
@@ -287,7 +306,7 @@
 
         position.ResetToStartingPosition();
         MoveList.Clear();
-        MoveList.Add(new MoveListItem(1, "..."));
+        MoveList.Add(new MoveListItem(1));
 
         if (whitePlayer == 0)
         {
@@ -328,10 +347,8 @@
             if (moveIndex >= 0)
             {
                 await MakeMoveAsync(moveIndex);
-            }
-            else
-            {
-                hint = "Error";
+                await InvokeAsync(StateHasChanged);
+                await Task.Delay(250);
             }
 
             currentMove = null;
@@ -393,7 +410,7 @@
             MoveList[^1] = MoveList[^1] with { White = notation };
             if (!(move.IsCheckmate || move.IsStalemate))
             {
-                MoveList[^1] = MoveList[^1] with { Black = "..." };
+                MoveList[^1] = MoveList[^1] with { Black = null };
             }
         }
         else
@@ -401,26 +418,26 @@
             MoveList[^1] = MoveList[^1] with { Black = notation };
             if (!(move.IsCheckmate || move.IsStalemate))
             {
-                MoveList.Add(new MoveListItem(MoveList.Count + 1, "..."));
+                MoveList.Add(new MoveListItem(MoveList.Count + 1));
             }
         }
     }
 
     void ComputerMove(PieceColor playerColor)
     {
-        Task.Run(() =>
+        Task.Run(async () =>
         {
             var positionCopy = Position.FromMoves(position.Moves);
             validMoves = positionCopy.GetMoves(playerColor, true, true).ToList();
             progressTotal = validMoves.Count;
             progressCurrent = 1;
-            InvokeAsync(StateHasChanged);
+            await InvokeAsync(StateHasChanged);
 
-            void OnProgressChange(object? sender, FindMoveProgressEventArgs e)
+            async void OnProgressChange(object? sender, FindMoveProgressEventArgs e)
             {
                 progressCurrent = e.Current;
                 progressTotal = e.Total;
-                InvokeAsync(StateHasChanged);
+                await InvokeAsync(StateHasChanged);
             }
             positionCopy.FindMoveProgress += OnProgressChange;
             var aiLevel = playerColor == PieceColor.White ? whitePlayer : blackPlayer;
@@ -438,7 +455,8 @@
                 position = Position.FromMoves(moves);
 
                 progressCurrent = 0;
-                InvokeAsync(StateHasChanged);
+                await InvokeAsync(StateHasChanged);
+                await Task.Delay(250);
             }
 
             PassTurn();

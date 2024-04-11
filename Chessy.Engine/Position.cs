@@ -13,6 +13,16 @@ public class Position
 
     public PieceColor ColorToMove { get; set; }
 
+    public bool IsGameOver
+    {
+        get
+        {
+            if (!Moves.Any()) { return false; }
+            var lastMove = Moves[^1];
+            return lastMove.IsCheckmate || lastMove.IsStalemate;
+        }
+    }
+
     public bool[] CastlingState { get; set; } = Array.Empty<bool>();
 
     private long _nodesCounter { get; set; }
@@ -312,13 +322,6 @@ public class Position
         }
 
         return (bestMove, bestScore);
-
-        //return isMaximising ? Board.MaterialValue : -Board.MaterialValue;
-
-        //    value := max(value, −negamax(child, depth − 1, −β, −α, −color))
-        //α:= max(α, value)
-        //if α ≥ β then
-        //    break (*cut - off *)
     }
 
 
@@ -400,11 +403,11 @@ public class Position
                                 isLegal = !opponentMoves.Any(x => Board.Squares[x.To.file, x.To.rank]?.Kind == PieceKind.King);
                                 if (move.IsCastlingShort)
                                 {
-                                    isLegal = isLegal && !opponentMoves.Any(x => x.To.file == (move.To.file + 1) && x.To.rank == move.To.rank);
+                                    isLegal = isLegal && !opponentMoves.Any(x => x.To.file == (move.To.file - 1) && x.To.rank == move.To.rank);
                                 }
                                 else if (move.IsCastlingLong)
                                 {
-                                    isLegal = isLegal && !opponentMoves.Any(x => x.To.file == (move.To.file - 1) && x.To.rank == move.To.rank);
+                                    isLegal = isLegal && !opponentMoves.Any(x => x.To.file == (move.To.file + 1) && x.To.rank == move.To.rank);
                                 }
                             }
 

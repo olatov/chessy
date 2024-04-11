@@ -8,4 +8,4 @@ services:
       dockerfile: Chessy.Blazor/Dockerfile
     ports:
       - 5083:5083
-    platform: linux/arm64
+    #platform: linux/arm64
