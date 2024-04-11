@@ -48,22 +48,22 @@ public class Position
         Board = new Board();
         Moves = new List<Move>();
 
-        foreach (int file in new[] { 0, 7 })
+        foreach (int File in new[] { 0, 7 })
         {
-            Board.Squares[file, 0] = new Piece { Color = PieceColor.White, Kind = PieceKind.Rook };
-            Board.Squares[file, 7] = new Piece { Color = PieceColor.Black, Kind = PieceKind.Rook };
+            Board.Squares[File, 0] = new Piece { Color = PieceColor.White, Kind = PieceKind.Rook };
+            Board.Squares[File, 7] = new Piece { Color = PieceColor.Black, Kind = PieceKind.Rook };
         }
 
-        foreach (int file in new[] { 1, 6 })
+        foreach (int File in new[] { 1, 6 })
         {
-            Board.Squares[file, 0] = new Piece { Color = PieceColor.White, Kind = PieceKind.Knight };
-            Board.Squares[file, 7] = new Piece { Color = PieceColor.Black, Kind = PieceKind.Knight };
+            Board.Squares[File, 0] = new Piece { Color = PieceColor.White, Kind = PieceKind.Knight };
+            Board.Squares[File, 7] = new Piece { Color = PieceColor.Black, Kind = PieceKind.Knight };
         }
 
-        foreach (int file in new[] { 2, 5 })
+        foreach (int File in new[] { 2, 5 })
         {
-            Board.Squares[file, 0] = new Piece { Color = PieceColor.White, Kind = PieceKind.Bishop };
-            Board.Squares[file, 7] = new Piece { Color = PieceColor.Black, Kind = PieceKind.Bishop };
+            Board.Squares[File, 0] = new Piece { Color = PieceColor.White, Kind = PieceKind.Bishop };
+            Board.Squares[File, 7] = new Piece { Color = PieceColor.Black, Kind = PieceKind.Bishop };
         }
 
         Board.Squares[3, 0] = new Piece { Color = PieceColor.White, Kind = PieceKind.Queen };
@@ -72,10 +72,10 @@ public class Position
         Board.Squares[4, 0] = new Piece { Color = PieceColor.White, Kind = PieceKind.King };
         Board.Squares[4, 7] = new Piece { Color = PieceColor.Black, Kind = PieceKind.King };
 
-        foreach (int file in Enumerable.Range(0, 8))
+        foreach (int File in Enumerable.Range(0, 8))
         {
-            Board.Squares[file, 1] = new Piece { Color = PieceColor.White, Kind = PieceKind.Pawn };
-            Board.Squares[file, 6] = new Piece { Color = PieceColor.Black, Kind = PieceKind.Pawn };
+            Board.Squares[File, 1] = new Piece { Color = PieceColor.White, Kind = PieceKind.Pawn };
+            Board.Squares[File, 6] = new Piece { Color = PieceColor.Black, Kind = PieceKind.Pawn };
         }
 
         ColorToMove = PieceColor.White;
@@ -83,10 +83,28 @@ public class Position
         CastlingState = [true, true, true, true];
     }
 
+    public void ResetToEmptyBoard()
+    {
+        Board = new Board();
+        Moves = new List<Move>();
+        ColorToMove = PieceColor.White;
+        CastlingState = [true, true, true, true];
+    }
+
+    public void AddPiece(IPiece piece, Coords position)
+    {
+        if (Board.Squares[position.File, position.Rank] is not null)
+        {
+            throw new InvalidOperationException("Square is not empty");
+        }
+
+        Board.Squares[position.File, position.Rank] = piece;
+    }
+
     public void MakeMove(Move move)
     {
-        Board.Squares[move.To.file, move.To.rank] = move.Piece;
-        Board.Squares[move.From.file, move.From.rank] = null;
+        Board.Squares[move.To.File, move.To.Rank] = move.Piece;
+        Board.Squares[move.From.File, move.From.Rank] = null;
 
         if (move.IsPromotion)
         {
@@ -98,13 +116,13 @@ public class Position
         {
             if (move.IsCastlingShort)
             {
-                Board.Squares[5, move.From.rank] = move.CastlingRook;
-                Board.Squares[7, move.From.rank] = null;
+                Board.Squares[5, move.From.Rank] = move.CastlingRook;
+                Board.Squares[7, move.From.Rank] = null;
             }
             else if (move.IsCastlingLong)
             {
-                Board.Squares[3, move.From.rank] = move.CastlingRook;
-                Board.Squares[0, move.From.rank] = null;
+                Board.Squares[3, move.From.Rank] = move.CastlingRook;
+                Board.Squares[0, move.From.Rank] = null;
             }
 
             if (move.Piece.Color == PieceColor.White)
@@ -122,22 +140,22 @@ public class Position
         {
             if (move.Piece.Color == PieceColor.White)
             {
-                if (move.From.file == 0)
+                if (move.From.File == 0)
                 {
                     CastlingState[1] = false;
                 }
-                else if (move.From.file == 7)
+                else if (move.From.File == 7)
                 {
                     CastlingState[0] = false;
                 }
             }
             else
             {
-                if (move.From.file == 0)
+                if (move.From.File == 0)
                 {
                     CastlingState[3] = false;
                 }
-                else if (move.From.file == 7)
+                else if (move.From.File == 7)
                 {
                     CastlingState[2] = false;
                 }
@@ -147,8 +165,8 @@ public class Position
 
     public void UndoMove(Move move)
     {
-        Board.Squares[move.From.file, move.From.rank] = move.Piece;
-        Board.Squares[move.To.file, move.To.rank] = move.IsCapture ? move.CapturedPiece : null;
+        Board.Squares[move.From.File, move.From.Rank] = move.Piece;
+        Board.Squares[move.To.File, move.To.Rank] = move.IsCapture ? move.CapturedPiece : null;
 
         if (move.IsPromotion)
         {
@@ -157,13 +175,13 @@ public class Position
 
         if (move.IsCastlingShort)
         {
-            Board.Squares[5, move.From.rank] = null;
-            Board.Squares[7, move.From.rank] = move.CastlingRook;
+            Board.Squares[5, move.From.Rank] = null;
+            Board.Squares[7, move.From.Rank] = move.CastlingRook;
         }
         else if (move.IsCastlingLong)
         {
-            Board.Squares[3, move.From.rank] = null;
-            Board.Squares[0, move.From.rank] = move.CastlingRook;
+            Board.Squares[3, move.From.Rank] = null;
+            Board.Squares[0, move.From.Rank] = move.CastlingRook;
         }
 
         if (move.Piece.Color == PieceColor.White)
@@ -215,10 +233,10 @@ public class Position
         if (bestMove is null) { return null; }
 
         return moves.Single(x =>
-            x.From.file == bestMove.From.file
-            && x.From.rank == bestMove.From.rank
-            && x.To.file == bestMove.To.file
-            && x.To.rank == bestMove.To.rank
+            x.From.File == bestMove.From.File
+            && x.From.Rank == bestMove.From.Rank
+            && x.To.File == bestMove.To.File
+            && x.To.Rank == bestMove.To.Rank
             && x.PromotionPieceKind == bestMove.PromotionPieceKind);
     }
 
@@ -330,8 +348,8 @@ public class Position
 
                         var move = new Move(
                             piece: fromSquare,
-                            from: (fromFile, fromRank),
-                            to: (toFile, toRank))
+                            from: new(fromFile, fromRank),
+                            to: new(toFile, toRank))
                         {
                             CapturedPiece = toSquare,
                         };
@@ -375,21 +393,21 @@ public class Position
                         {
                             MakeMove(move);
                             var opponentMoves = GetMoves(playerColor.OpponentColor(), false, false);
-                            isLegal = !opponentMoves.Any(x => Board.Squares[x.To.file, x.To.rank]?.Kind == PieceKind.King);
+                            isLegal = !opponentMoves.Any(x => Board.Squares[x.To.File, x.To.Rank]?.Kind == PieceKind.King);
                             UndoMove(move);
                         }
 
                         if (isLegal && legalChecks && (move.IsCastlingShort || move.IsCastlingLong))
                         {
                             var opponentMoves = GetMoves(playerColor.OpponentColor(), false);
-                            isLegal = !opponentMoves.Any(x => Board.Squares[x.To.file, x.To.rank]?.Kind == PieceKind.King);
+                            isLegal = !opponentMoves.Any(x => Board.Squares[x.To.File, x.To.Rank]?.Kind == PieceKind.King);
                             if (move.IsCastlingShort)
                             {
-                                isLegal = isLegal && !opponentMoves.Any(x => x.To.file == (move.To.file - 1) && x.To.rank == move.To.rank);
+                                isLegal = isLegal && !opponentMoves.Any(x => x.To.File == (move.To.File - 1) && x.To.Rank == move.To.Rank);
                             }
                             else if (move.IsCastlingLong)
                             {
-                                isLegal = isLegal && !opponentMoves.Any(x => x.To.file == (move.To.file + 1) && x.To.rank == move.To.rank);
+                                isLegal = isLegal && !opponentMoves.Any(x => x.To.File == (move.To.File + 1) && x.To.Rank == move.To.Rank);
                             }
                         }
 
@@ -421,32 +439,32 @@ public class Position
 
     public bool IsLegalMove(Move move)
     {
-        var piece = Board.Squares[move.From.file, move.From.rank];
+        var piece = Board.Squares[move.From.File, move.From.Rank];
         if (piece is null || piece != move.Piece) { return false; }
 
-        var destinationSquare = Board.Squares[move.To.file, move.To.rank];
+        var destinationSquare = Board.Squares[move.To.File, move.To.Rank];
         if (destinationSquare?.Color == piece.Color) { return false; }
 
         switch (piece.Kind)
         {
             case PieceKind.King:
-                if (((Math.Abs(move.From.file - move.To.file) == 1)
-                    && (Math.Abs(move.From.rank - move.To.rank) <= 1))
-                    || ((Math.Abs(move.From.file - move.To.file) <= 1)
-                    && (Math.Abs(move.From.rank - move.To.rank) == 1)))
+                if (((Math.Abs(move.From.File - move.To.File) == 1)
+                    && (Math.Abs(move.From.Rank - move.To.Rank) <= 1))
+                    || ((Math.Abs(move.From.File - move.To.File) <= 1)
+                    && (Math.Abs(move.From.Rank - move.To.Rank) == 1)))
                 {
                     return true;
                 }
 
                 if (move.IsCastlingShort
-                    && Board.IsClearBetween(move.From, (7, move.From.rank))
+                    && Board.IsClearBetween(move.From, new Coords(7, move.From.Rank))
                     && ((ColorToMove == PieceColor.White && CastlingState[0])
                         || (ColorToMove == PieceColor.Black && CastlingState[2])))
                 {
                     return true;
                 }
                 else if (move.IsCastlingLong
-                    && Board.IsClearBetween(move.From, (0, move.From.rank))
+                    && Board.IsClearBetween(move.From, new Coords(0, move.From.Rank))
                     && ((ColorToMove == PieceColor.White && CastlingState[1])
                         || (ColorToMove == PieceColor.Black && CastlingState[3]))
                     )
@@ -457,31 +475,31 @@ public class Position
                 return false;
 
             case PieceKind.Rook:
-                if (move.From.file == move.To.file || move.From.rank == move.To.rank)
+                if (move.From.File == move.To.File || move.From.Rank == move.To.Rank)
                 {
                     return Board.IsClearBetween(move.From, move.To);
                 }
                 break;
 
             case PieceKind.Bishop:
-                if (Math.Abs(move.From.file - move.To.file) == Math.Abs(move.From.rank - move.To.rank))
+                if (Math.Abs(move.From.File - move.To.File) == Math.Abs(move.From.Rank - move.To.Rank))
                 {
                     return Board.IsClearBetween(move.From, move.To);
                 }
                 break;
 
             case PieceKind.Queen:
-                if (move.From.file == move.To.file || move.From.rank == move.To.rank || Math.Abs(move.From.file - move.To.file) == Math.Abs(move.From.rank - move.To.rank))
+                if (move.From.File == move.To.File || move.From.Rank == move.To.Rank || Math.Abs(move.From.File - move.To.File) == Math.Abs(move.From.Rank - move.To.Rank))
                 {
                     return Board.IsClearBetween(move.From, move.To);
                 }
                 break;
 
             case PieceKind.Knight:
-                if ((Math.Abs(move.From.file - move.To.file) == 1
-                     && Math.Abs(move.From.rank - move.To.rank) == 2)
-                    || (Math.Abs(move.From.file - move.To.file) == 2
-                    && Math.Abs(move.From.rank - move.To.rank) == 1))
+                if ((Math.Abs(move.From.File - move.To.File) == 1
+                     && Math.Abs(move.From.Rank - move.To.Rank) == 2)
+                    || (Math.Abs(move.From.File - move.To.File) == 2
+                    && Math.Abs(move.From.Rank - move.To.Rank) == 1))
                 {
                     return true;
                 }
@@ -491,18 +509,18 @@ public class Position
                 switch (piece.Color)
                 {
                     case PieceColor.White:
-                        if ((move.To.rank - move.From.rank == 1)
-                            && ((move.From.file == move.To.file && Board.Squares[move.To.file, move.To.rank] is null)
-                                || (Math.Abs(move.From.file - move.To.file) == 1 && Board.Squares[move.To.file, move.To.rank]?.Color == PieceColor.Black)))
+                        if ((move.To.Rank - move.From.Rank == 1)
+                            && ((move.From.File == move.To.File && Board.Squares[move.To.File, move.To.Rank] is null)
+                                || (Math.Abs(move.From.File - move.To.File) == 1 && Board.Squares[move.To.File, move.To.Rank]?.Color == PieceColor.Black)))
                         {
                             return true;
                         }
 
-                        if ((move.From.rank == 1)
-                            && (move.To.rank == 3)
-                            && (move.From.file == move.To.file)
-                            && Board.Squares[move.From.file, 2] is null
-                            && Board.Squares[move.From.file, 3] is null)
+                        if ((move.From.Rank == 1)
+                            && (move.To.Rank == 3)
+                            && (move.From.File == move.To.File)
+                            && Board.Squares[move.From.File, 2] is null
+                            && Board.Squares[move.From.File, 3] is null)
                         {
                             return true;
                         }
@@ -510,17 +528,17 @@ public class Position
                         return false;
 
                     case PieceColor.Black:
-                        if ((move.To.rank - move.From.rank == -1)
-                            && ((move.From.file == move.To.file && Board.Squares[move.To.file, move.To.rank] is null)
-                                || (Math.Abs(move.From.file - move.To.file) == 1 && Board.Squares[move.To.file, move.To.rank]?.Color == PieceColor.White)))
+                        if ((move.To.Rank - move.From.Rank == -1)
+                            && ((move.From.File == move.To.File && Board.Squares[move.To.File, move.To.Rank] is null)
+                                || (Math.Abs(move.From.File - move.To.File) == 1 && Board.Squares[move.To.File, move.To.Rank]?.Color == PieceColor.White)))
                         {
                             return true;
                         }
-                        if ((move.From.rank == 6)
-                            && (move.To.rank == 4)
-                            && (move.From.file == move.To.file)
-                            && Board.Squares[move.From.file, 5] is null
-                            && Board.Squares[move.From.file, 4] is null)
+                        if ((move.From.Rank == 6)
+                            && (move.To.Rank == 4)
+                            && (move.From.File == move.To.File)
+                            && Board.Squares[move.From.File, 5] is null
+                            && Board.Squares[move.From.File, 4] is null)
                         {
                             return true;
                         }

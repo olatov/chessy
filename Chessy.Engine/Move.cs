@@ -5,11 +5,11 @@ using Chessy.Engine.Pieces;
 
 namespace Chessy.Engine;
 
-public class Move(IPiece piece, (int file, int rank) from, (int file, int rank) to)
+public class Move(IPiece piece, Coords from, Coords to)
 {
-    public (int file, int rank) From { get; set; } = from;
+    public Coords From { get; set; } = from;
 
-    public (int file, int rank) To { get; set; } = to;
+    public Coords To { get; set; } = to;
 
     public IPiece Piece { get; set; } = piece;
 
@@ -25,22 +25,22 @@ public class Move(IPiece piece, (int file, int rank) from, (int file, int rank) 
 
     public bool IsEnPassantCapture { get; set; }
 
-    public bool IsPawnDoubleMove => Piece?.Kind == PieceKind.Pawn && Math.Abs(From.rank - To.rank) == 2;
+    public bool IsPawnDoubleMove => Piece?.Kind == PieceKind.Pawn && Math.Abs(From.Rank - To.Rank) == 2;
 
     public bool IsCastlingShort
     {
         get => Piece?.Kind == PieceKind.King
-            && From.file == 4
-            && To.file == 6
-            && From.rank == To.rank;
+            && From.File == 4
+            && To.File == 6
+            && From.Rank == To.Rank;
     }
 
     public bool IsCastlingLong
     {
         get => Piece?.Kind == PieceKind.King
-            && From.file == 4
-            && To.file == 2
-            && From.rank == To.rank;
+            && From.File == 4
+            && To.File == 2
+            && From.Rank == To.Rank;
     }
 
     public IPiece? CastlingRook { get; set; }
@@ -71,10 +71,10 @@ public class Move(IPiece piece, (int file, int rank) from, (int file, int rank) 
             }
             else
             {
-                var fromFile = (char)((char)From.file + 'a');
-                var fromRank = (char)((char)From.rank + '1');
-                var toFile = (char)((char)To.file + 'a');
-                var toRank = (char)((char)To.rank + '1');
+                var fromFile = (char)((char)From.File + 'a');
+                var fromRank = (char)((char)From.Rank + '1');
+                var toFile = (char)((char)To.File + 'a');
+                var toRank = (char)((char)To.Rank + '1');
 
                 result.Append(Piece!.Kind.Figurine());
 

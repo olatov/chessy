@@ -7,13 +7,13 @@ public record Board
 {
     public IPiece?[,] Squares = new IPiece?[8, 8];
 
-    public bool IsClearBetween((int file, int rank) square1, (int file, int rank) square2)
+    public bool IsClearBetween(Coords square1, Coords square2)
     {
-        if (square1.file == square2.file)
+        if (square1.File == square2.File)
         {
-            int file = square1.file;
-            for (var rank = Math.Min(square1.rank, square2.rank) + 1;
-                rank < Math.Max(square1.rank, square2.rank);
+            int file = square1.File;
+            for (var rank = Math.Min(square1.Rank, square2.Rank) + 1;
+                rank < Math.Max(square1.Rank, square2.Rank);
                 rank++)
             {
                 if (Squares[file, rank] is not null)
@@ -24,12 +24,12 @@ public record Board
             // Horizontal
             return true;
         }
-        else if (square1.rank == square2.rank)
+        else if (square1.Rank == square2.Rank)
         {
             // Vertical
-            int rank = square1.rank;
-            for (var file = Math.Min(square1.file, square2.file) + 1;
-                file < Math.Max(square1.file, square2.file);
+            int rank = square1.Rank;
+            for (var file = Math.Min(square1.File, square2.File) + 1;
+                file < Math.Max(square1.File, square2.File);
                 file++)
             {
                 if (Squares[file, rank] is not null)
@@ -40,14 +40,14 @@ public record Board
 
             return true;
         }
-        else if (Math.Abs(square1.file - square2.file) == Math.Abs(square1.rank - square2.rank))
+        else if (Math.Abs(square1.File - square2.File) == Math.Abs(square1.Rank - square2.Rank))
         {
-            int fileSign = Math.Sign(square2.file - square1.file);
-            int rankSign = Math.Sign(square2.rank - square1.rank);
+            int fileSign = Math.Sign(square2.File - square1.File);
+            int rankSign = Math.Sign(square2.Rank - square1.Rank);
 
-            int rank = square1.rank + rankSign;
-            int file = square1.file + fileSign;
-            while (rank != square2.rank)
+            int rank = square1.Rank + rankSign;
+            int file = square1.File + fileSign;
+            while (rank != square2.Rank)
             {
                 if (Squares[file, rank] is not null)
                 {

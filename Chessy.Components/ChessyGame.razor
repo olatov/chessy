@@ -129,20 +129,20 @@
                 var square = position.Board.Squares[file, rank];
                 var cssClass = ((rank + file) % 2 == 0) ? "dark" : "light";
 
-                if ((rank == currentMove?.From.rank && file == currentMove?.From.file)
-                    || (lastMove?.From.rank == rank && lastMove?.From.file == file)
-                    || (lastMove?.To.rank == rank && lastMove?.To.file == file))
+                if ((rank == currentMove?.From.Rank && file == currentMove?.From.File)
+                    || (lastMove?.From.Rank == rank && lastMove?.From.File == file)
+                    || (lastMove?.To.Rank == rank && lastMove?.To.File == file))
                 {
                     cssClass += " selected";
                 }
 
-                if ((lastMove?.From.rank == rank && lastMove?.From.file == file)
-                    || (lastMove?.To.rank == rank && lastMove?.To.file == file))
+                if ((lastMove?.From.Rank == rank && lastMove?.From.File == file)
+                    || (lastMove?.To.Rank == rank && lastMove?.To.File == file))
                 {
                     cssClass += " lastMove";
                 }
 
-                if (legalTargets.Any(x => x.rank == rank && x.file == file))
+                if (legalTargets.Any(x => x.Rank == rank && x.File == file))
                     {
                         cssClass += " legalTarget";
                     }
@@ -300,12 +300,12 @@
 
     IList<Move> validMoves = new List<Move>();
 
-    IEnumerable<(int file, int rank)> legalTargets => currentMove is not null
+    IEnumerable<Coords> legalTargets => currentMove is not null
         ? validMoves.Where(x =>
-            x.From.file == currentMove.From.file
-            && x.From.rank == currentMove.From.rank)
+            x.From.File == currentMove.From.File
+            && x.From.Rank == currentMove.From.Rank)
         .Select(x => x.To)
-        : Enumerable.Empty<(int file, int rank)>();
+        : Enumerable.Empty<Coords>();
 
     int progressCurrent = 0;
     int progressTotal = 1;
@@ -352,18 +352,18 @@
             IPiece? piece = position.Board.Squares[file, rank];
             if (piece is not null && piece?.Color == position.ColorToMove)
             {
-                currentMove = new Move(piece, (file, rank), (-1, -1));
+                currentMove = new Move(piece, new Coords(file, rank), new Coords(-1, -1));
             }
         }
         else
         {
-            currentMove.To = (file, rank);
+            currentMove.To = new(file, rank);
 
             var moveIndex = validMoves.ToList().FindIndex(x =>
-                x.From.file == currentMove.From.file
-                && x.From.rank == currentMove.From.rank
-                && x.To.file == currentMove.To.file
-                && x.To.rank == currentMove.To.rank);
+                x.From.File == currentMove.From.File
+                && x.From.Rank == currentMove.From.Rank
+                && x.To.File == currentMove.To.File
+                && x.To.Rank == currentMove.To.Rank);
             if (moveIndex >= 0)
             {
                 await MakeMoveAsync(moveIndex);
