@@ -25,9 +25,13 @@ public class Position
 
     public bool[] CastlingState { get; set; } = Array.Empty<bool>();
 
+    public Coords? EnPassantTarget { get; set; } = null;
+
     private long _nodesCounter { get; set; }
 
     public event EventHandler<FindMoveProgressEventArgs>? FindMoveProgress;
+
+    private Stack<Coords?> EnPassantTargets { get; set; } = new();
 
     public static Position FromMoves(IEnumerable<Move> moves)
     {
@@ -112,6 +116,15 @@ public class Position
             move.Piece.Kind = move.PromotionPieceKind.Value;
         }
 
+        if (move.IsEnPassantCapture)
+        {
+            var rank = move.Piece.Color == PieceColor.White ? 4 : 3;
+            Board.Squares[move.To.File, rank] = null;
+        }
+
+        EnPassantTargets.Push(EnPassantTarget);
+        EnPassantTarget = move.EnPassantTarget;
+
         if (move.Piece.Kind == PieceKind.King)
         {
             if (move.IsCastlingShort)
@@ -172,6 +185,14 @@ public class Position
         {
             move.Piece.Kind = PieceKind.Pawn;
         }
+
+        if (move.IsEnPassantCapture)
+        {
+            var rank = move.Piece.Color == PieceColor.White ? 4 : 3;
+            Board.Squares[move.To.File, rank] = move.CapturedPiece;
+        }
+
+        EnPassantTarget = EnPassantTargets.Pop();
 
         if (move.IsCastlingShort)
         {
@@ -354,10 +375,21 @@ public class Position
                             CapturedPiece = toSquare,
                         };
 
-                        if (move.Piece.Kind == PieceKind.Pawn && move.To.Rank is 0 or 7)
+
+                        if (move.Piece.Kind == PieceKind.Pawn)
                         {
-                            move.IsPromotion = true;
-                            move.PromotionPieceKind = PieceKind.Queen;
+                            if (move.To.Rank is 0 or 7)
+                            {
+                                move.IsPromotion = true;
+                                move.PromotionPieceKind = PieceKind.Queen;
+                            }
+
+                            if (move.To == EnPassantTarget)
+                            {
+                                move.IsEnPassantCapture = true;
+                                var rank = playerColor == PieceColor.White ? 4 : 3;
+                                move.CapturedPiece = Board.Squares[move.To.File, rank];
+                            }
                         }
 
                         if (move.IsCastlingShort)
@@ -522,7 +554,9 @@ public class Position
                     case PieceColor.White:
                         if ((move.To.Rank - move.From.Rank == 1)
                             && ((move.From.File == move.To.File && Board.Squares[move.To.File, move.To.Rank] is null)
-                                || (Math.Abs(move.From.File - move.To.File) == 1 && Board.Squares[move.To.File, move.To.Rank]?.Color == PieceColor.Black)))
+                                || (Math.Abs(move.From.File - move.To.File) == 1
+                                    && (Board.Squares[move.To.File, move.To.Rank]?.Color == PieceColor.Black
+                                        || (move.To == EnPassantTarget)))))
                         {
                             return true;
                         }

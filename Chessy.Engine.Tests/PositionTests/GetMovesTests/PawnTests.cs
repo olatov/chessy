@@ -194,6 +194,172 @@ public class PawnTests
     }
 
     [Fact]
+    public void ShouldNotCaptureOwnPiece_WhenWhite()
+    {
+        // Arrange
+        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White };
+        var otherPawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White };
+        _sut.AddPiece(pawn, Coords.Parse("d5"));
+        _sut.AddPiece(otherPawn, Coords.Parse("c6"));
+
+        // Act
+        var moves = _sut.GetMoves(pawn.Color);
+
+        // Assert
+        moves.Should().NotContain(moves => moves.CapturedPiece == otherPawn);
+    }
+
+    [Fact]
+    public void ShouldNotCaptureOwnPiece_WhenBlack()
+    {
+        // Arrange
+        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black };
+        var otherPawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black };
+        _sut.AddPiece(pawn, Coords.Parse("e4"));
+        _sut.AddPiece(otherPawn, Coords.Parse("d3"));
+
+        // Act
+        var moves = _sut.GetMoves(pawn.Color);
+
+        // Assert
+        moves.Should().NotContain(moves => moves.CapturedPiece == otherPawn);
+    }
+
+    [Fact]
+    public void EnPassantTargetIsSet_WhenDoubleMove_AndWhite()
+    {
+        // Arrange
+        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White };
+        _sut.AddPiece(pawn, Coords.Parse("d2"));
+
+        // Act
+        var moves = _sut.GetMoves(pawn.Color);
+
+        // Assert
+        var move = moves.First(move => move.To == Coords.Parse("d4"));
+        move.EnPassantTarget.Should().Be(Coords.Parse("d3"));
+    }
+
+    [Fact]
+    public void EnPassantTargetIsSet_WhenDoubleMove_AndBlack()
+    {
+        // Arrange
+        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black };
+        _sut.AddPiece(pawn, Coords.Parse("e7"));
+
+        // Act
+        var moves = _sut.GetMoves(pawn.Color);
+
+        // Assert
+        moves.Should().Contain(m => m.IsPawnDoubleMove);
+
+        var move = moves.First(move => move.To == Coords.Parse("e5"));
+        move.EnPassantTarget.Should().Be(Coords.Parse("e6"));
+    }
+
+    public void EnPassantTargetIsNotSet_WhenNotDoubleMove_AndWhite()
+    {
+        // Arrange
+        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White };
+        _sut.AddPiece(pawn, Coords.Parse("d2"));
+
+        // Act
+        var moves = _sut.GetMoves(pawn.Color);
+
+        // Assert
+        var move = moves.First(move => move.To == Coords.Parse("d3"));
+        move.EnPassantTarget.Should().BeNull();
+    }
+
+    public void EnPassantTargetIsNotSet_WhenNotDoubleMove_AndBlack()
+    {
+        // Arrange
+        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black };
+        _sut.AddPiece(pawn, Coords.Parse("e7"));
+
+        // Act
+        var moves = _sut.GetMoves(pawn.Color);
+
+        // Assert
+        var move = moves.First(move => move.To == Coords.Parse("e6"));
+        move.EnPassantTarget.Should().BeNull();
+    }
+
+    [Fact] void EnPassantTargetIsSavedOnPosition_WhenDoubleMove_AndWhite()
+    {
+        // Arrange
+        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White };
+        _sut.AddPiece(pawn, Coords.Parse("d2"));
+        _sut.MakeMove(new Move(pawn, Coords.Parse("d2"), Coords.Parse("d4")));
+
+        // Act
+        var moves = _sut.GetMoves(pawn.Color);
+
+        // Assert
+        _sut.EnPassantTarget.Should().Be(Coords.Parse("d3"));
+    }
+
+    [Fact]
+    void EnPassantTargetIsSavedOnPosition_WhenDoubleMove_AndBlack()
+    {
+        // Arrange
+        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black };
+        _sut.AddPiece(pawn, Coords.Parse("e7"));
+        _sut.MakeMove(new Move(pawn, Coords.Parse("e7"), Coords.Parse("e5")));
+
+        // Act
+        var moves = _sut.GetMoves(pawn.Color);
+
+        // Assert
+        _sut.EnPassantTarget.Should().Be(Coords.Parse("e6"));
+    }
+
+    [Fact]
+    void EnPasseantIsResetAfterMove_WhenWhite()
+    {
+        // Arrange
+        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White };
+        var enemyPawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black };
+        _sut.AddPiece(pawn, Coords.Parse("d2"));
+        _sut.AddPiece(enemyPawn, Coords.Parse("c4"));
+
+        // Act
+        _sut.MakeMove(new Move(pawn, Coords.Parse("d2"), Coords.Parse("d4")));
+        var moves = _sut.GetMoves(pawn.Color);
+
+        // Assert
+        _sut.EnPassantTarget.Should().BeNull();
+    }
+
+    // [Fact]
+    // public void ShouldCaptureEnPassant_WhenWhite()
+    // {
+    //     // Arrange
+    //     var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White };
+    //     var enemyPawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black };
+
+    //     _sut.AddPiece(pawn, Coords.Parse("d5"));
+    //     _sut.AddPiece(
+    //         new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black },
+    //         Coords.Parse("c7"));
+    //     _sut.AddPiece(
+    //         new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black },
+    //         Coords.Parse("e7"));
+
+    //     _sut.MakeMove(new Move(enemyPawn, Coords.Parse("c7"), Coords.Parse("c5")));
+    //     // Act
+    //     var moves = _sut.GetMoves(pawn.Color);
+
+    //     // Assert
+    //     moves.Should().HaveCount(2);
+
+    //     var notations = moves.Select(m => m.GetNotationVariants().First());
+    //     notations.Should().Contain("dxc6 e.p.");
+    //     notations.Should().Contain("d6");
+    // }
+
+
+    [Fact]
     public void ShouldPromote_WhenWhite_AndOnEighthRank()
     {
         // Arrange
@@ -212,7 +378,7 @@ public class PawnTests
         notations.Should().Contain("d8=N");
     }
 
-    //[Fact]
+    [Fact]
     public void ShouldPromote_WhenBlack_AndOnFirstRank()
     {
         // Arrange

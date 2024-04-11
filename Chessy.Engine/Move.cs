@@ -25,6 +25,10 @@ public class Move(IPiece piece, Coords from, Coords to)
 
     public bool IsEnPassantCapture { get; set; }
 
+    public Coords? EnPassantTarget => IsPawnDoubleMove ?
+        new Coords(To.File, Piece.Color == PieceColor.White ? 2 : 5)
+        : null;
+
     public bool IsPawnDoubleMove => Piece?.Kind == PieceKind.Pawn && Math.Abs(From.Rank - To.Rank) == 2;
 
     public bool IsCastlingShort
@@ -110,8 +114,12 @@ public class Move(IPiece piece, Coords from, Coords to)
                     result.Append('x');
                 }
 
-                result.Append(toFile)
-                    .Append(toRank);
+                result.Append(toFile).Append(toRank);
+
+                if (IsEnPassantCapture)
+                {
+                    result.Append(" e.p.");
+                }
 
                 if (IsPromotion)
                 {
