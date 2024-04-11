@@ -23,7 +23,7 @@ public class Position
         }
     }
 
-    public bool[] CastlingState { get; set; } = Array.Empty<bool>();
+    public bool[] CastlingState { get; set; } = [true, true, true, true];
 
     public Coords? EnPassantTarget { get; set; } = null;
 

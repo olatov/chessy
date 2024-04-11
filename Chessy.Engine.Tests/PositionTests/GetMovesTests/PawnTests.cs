@@ -1,6 +1,6 @@
 namespace Chessy.Engine.Tests.PositionTests.GetMovesTests;
 
-public class PawnTests
+public sealed class PawnTests
 {
     private Position _sut = new();
 
@@ -226,6 +226,41 @@ public class PawnTests
     }
 
     [Fact]
+    public void ShouldGiveCheck_WhenAttackingEnemyKing()
+    {
+        // Arrange
+        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White };
+        _sut.AddPiece(pawn, Coords.Parse("d6"));
+        var enemyKing = new Piece { Kind = PieceKind.King, Color = PieceColor.Black };
+        _sut.AddPiece(enemyKing, Coords.Parse("e8"));
+
+        // Act
+        var moves = _sut.GetMoves(pawn.Color, true, true);
+
+        // Assert
+        var notations = moves.Where(move => move.Piece == pawn)
+            .Select(move => move.GetNotationVariants().First());
+        moves.Should().Contain(m => m.IsCheck);
+        notations.Should().Contain("d7+");
+    }
+
+    [Fact]
+    public void ShouldNotMove_WhenWouldPutOwnKingInCheck()
+    {
+        // Arrange
+        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White };
+        _sut.AddPiece(pawn, Coords.Parse("e4"));
+        _sut.AddPiece(new Piece { Kind = PieceKind.King, Color = PieceColor.White }, Coords.Parse("b4"));
+        _sut.AddPiece(new Piece { Kind = PieceKind.Rook, Color = PieceColor.Black }, Coords.Parse("h4"));
+
+        // Act
+        var moves = _sut.GetMoves(pawn.Color);
+
+        // Assert
+        moves.Should().NotContain(move => move.Piece == pawn);
+    }
+
+    [Fact]
     public void EnPassantTargetIsSet_WhenDoubleMove_AndWhite()
     {
         // Arrange
@@ -257,6 +292,7 @@ public class PawnTests
         move.EnPassantTarget.Should().Be(Coords.Parse("e6"));
     }
 
+    [Fact]
     public void EnPassantTargetIsNotSet_WhenNotDoubleMove_AndWhite()
     {
         // Arrange
@@ -271,6 +307,7 @@ public class PawnTests
         move.EnPassantTarget.Should().BeNull();
     }
 
+    [Fact]
     public void EnPassantTargetIsNotSet_WhenNotDoubleMove_AndBlack()
     {
         // Arrange
