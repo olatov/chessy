@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chessy.Console", "Chessy.Co
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chessy.Blazor", "Chessy.Blazor\Chessy.Blazor.csproj", "{A87AE5A8-8288-4CFC-BF11-D429459C3FEC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chessy.BlazorWasm", "Chessy.BlazorWasm\Chessy.BlazorWasm.csproj", "{869131CC-0AB4-467A-A347-2CDD3D8FD7D0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{A87AE5A8-8288-4CFC-BF11-D429459C3FEC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A87AE5A8-8288-4CFC-BF11-D429459C3FEC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A87AE5A8-8288-4CFC-BF11-D429459C3FEC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{869131CC-0AB4-467A-A347-2CDD3D8FD7D0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{869131CC-0AB4-467A-A347-2CDD3D8FD7D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{869131CC-0AB4-467A-A347-2CDD3D8FD7D0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{869131CC-0AB4-467A-A347-2CDD3D8FD7D0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

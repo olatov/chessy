@@ -1,5 +1,8 @@
 ﻿@page "/"
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Chessy Wasm</PageTitle>
 
-<ChessyGame @rendermode="RenderMode.InteractiveWebAssembly" />
+@* Human vs Comp lvl 4 by default *@
+<ChessyGame
+    WhitePlayer="0"
+    BlackPlayer="4" />

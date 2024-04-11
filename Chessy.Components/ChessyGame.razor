@@ -119,13 +119,13 @@
             }
         }
 
+        @{ var lastMove = position.Moves.LastOrDefault(); }
+
         @foreach (int file in files)
         {
             <div class="rank">
             @foreach (int rank in ranks)
             {
-                var lastMove = position.Moves.LastOrDefault();
-
                 var square = position.Board.Squares[file, rank];
                 var cssClass = ((rank + file) % 2 == 0) ? "dark" : "light";
 
@@ -148,13 +148,20 @@
                     }
 
 
-                if ((lastMove?.IsCheck ?? false) && square?.Kind == PieceKind.King && square.Color != lastMove.Piece.Color)
+                if (square?.Kind == PieceKind.King && lastMove is not null && lastMove.Piece!.Color != square.Color)
+                {
+                    if (lastMove.IsCheckmate)
                     {
-                        cssClass += lastMove.IsCheckmate ? " checkmate" : " check";
+                        cssClass += " checkmate";
                     }
+                    else if (lastMove.IsCheck)
+                    {
+                        cssClass += " check";
+                    }
+                }
 
                 <div class="square @cssClass" @onclick="@(() => OnCellClick(file, rank))">
-                    @(square?.Icon.ToUpper() ?? string.Empty)
+                    @(square?.Identifier.ToUpper() ?? string.Empty)
                 </div>
             }
             </div>
@@ -173,7 +180,7 @@
                     OptionText="@(x => x.Text)"
                     OptionValue="@(x => x.Value)"
                     ValueChanged="OnWhitePlayerChange"
-                    Value="@selectedWhitePlayer">
+                    Value="@WhitePlayer">
                 </FluentSelect>
             </div>
 
@@ -185,7 +192,7 @@
                     OptionText="@(x => x.Text)"
                     OptionValue="@(x => x.Value)"
                     ValueChanged="OnBlackPlayerChange"
-                    Value="@selectedBlackPlayer">
+                    Value="@BlackPlayer">
                 </FluentSelect>
             </div>
         </FluentStack>
@@ -269,11 +276,13 @@
         }
     }
 
-    string selectedWhitePlayer = "0";
-    int whitePlayer => int.Parse(selectedWhitePlayer );
+    [Parameter]
+    public string WhitePlayer { get; set; } = "0";
+    int whitePlayer => int.Parse(WhitePlayer );
 
-    string selectedBlackPlayer = "5";
-    int blackPlayer => int.Parse(selectedBlackPlayer);
+    [Parameter]
+    public string BlackPlayer { get; set; }= "5";
+    int blackPlayer => int.Parse(BlackPlayer);
 
     Position position = new Position();
 
@@ -331,21 +340,19 @@
         }
     }
 
-    async Task CopyPgnToClipboard()
+    private async Task CopyPgnToClipboard()
     {
         await _js.InvokeVoidAsync("navigator.clipboard.writeText", PgnText);
     }
 
-    async Task OnCellClick(int file, int rank)
+    private async Task OnCellClick(int file, int rank)
     {
         if (currentMove is null)
         {
-            if (position.Board.Squares[file, rank]?.Color == position.ColorToMove)
+            IPiece? piece = position.Board.Squares[file, rank];
+            if (piece is not null && piece?.Color == position.ColorToMove)
             {
-                currentMove = new Move
-                {
-                    From = (file, rank),
-                };
+                currentMove = new Move(piece, (file, rank), (-1, -1));
             }
         }
         else
@@ -361,25 +368,25 @@
             {
                 await MakeMoveAsync(moveIndex);
                 await InvokeAsync(StateHasChanged);
-                await Task.Delay(250);
+                await Task.Delay(1);
             }
 
             currentMove = null;
         }
     }
 
-    async Task MakeMoveAsync(int moveIndex)
+    private async Task MakeMoveAsync(int moveIndex)
     {
         await MakeMoveAsync(validMoves[moveIndex]);
     }
 
-    async Task MakeMoveAsync(Move move)
+    private async Task MakeMoveAsync(Move move)
     {
         if (move.IsPromotion)
         {
             if (alwaysPromoteToQueen)
             {
-                move.PromotionPiece = PieceKind.Queen;
+                move.PromotionPieceKind = PieceKind.Queen;
             }
             else
             {
@@ -390,12 +397,12 @@
                         SecondaryActionEnabled = false,
                     });
                 var result = await dialog.Result;
-                move.PromotionPiece = (result.Data as PieceKind?) ?? PieceKind.Queen;
+                move.PromotionPieceKind = (result.Data as PieceKind?) ?? PieceKind.Queen;
             }
         }
 
-        var shortNotation = move.NotationVariants
-            .First(x => validMoves.Count(y => y.NotationVariants.Contains(x)) == 1);
+        var shortNotation = move.GetNotationVariants()
+            .First(x => validMoves.Count(y => y.GetNotationVariants().Contains(x)) == 1);
         Notate(move, shortNotation);
 
         var moves = position.Moves;
@@ -406,7 +413,7 @@
         PassTurn();
     }
 
-    void Notate(Move move, string notation, bool isLetter = true)
+    private void Notate(Move move, string notation, bool isLetter = true)
     {
         if (isLetter)
         {
@@ -418,7 +425,7 @@
                 .Replace("♘", "N");
         }
 
-        if (move.Piece.Color == PieceColor.White)
+        if (move.Piece!.Color == PieceColor.White)
         {
             MoveList[^1] = MoveList[^1] with { White = notation };
             if (!(move.IsCheckmate || move.IsStalemate))
@@ -436,17 +443,19 @@
         }
     }
 
-    void ComputerMove(PieceColor playerColor)
+    private void ComputerMove(PieceColor playerColor)
     {
         Console.WriteLine($"Computer move for {playerColor}");
         Task.Run(async () =>
         {
             Console.WriteLine("Thinking task started...");
-            var positionCopy = Position.FromMoves(position.Moves);
-            validMoves = positionCopy.GetMoves(playerColor, true, true).ToList();
-            progressTotal = validMoves.Count;
-            progressCurrent = 1;
+            Position positionCopy = Position.FromMoves(position.Moves);
+            Console.WriteLine("Got copy");
+            //Console.WriteLine("Got valid moves count");
+            progressTotal = 1;
+            progressCurrent = 0;
             await InvokeAsync(StateHasChanged);
+            await Task.Delay(1);
 
             async void OnProgressChange(object? sender, FindMoveProgressEventArgs e)
             {
@@ -455,31 +464,44 @@
                 await InvokeAsync(StateHasChanged);
                 await Task.Delay(1);
             }
+
             positionCopy.FindMoveProgress += OnProgressChange;
-            var aiLevel = playerColor == PieceColor.White ? whitePlayer : blackPlayer;
-            var computerMove = await positionCopy.FindBestMoveABAsync(playerColor, aiLevel);
+            int aiLevel = playerColor == PieceColor.White ? whitePlayer : blackPlayer;
+            Move? computerMove = await positionCopy.FindBestMoveABAsync(playerColor, aiLevel);
             positionCopy.FindMoveProgress -= OnProgressChange;
 
             if (computerMove is not null)
             {
+                progressCurrent = progressTotal;
+                await InvokeAsync(StateHasChanged);
+                await Task.Delay(1);
+
                 var moves = positionCopy.Moves;
                 moves.Add(computerMove);
-                var shortNotation = computerMove.NotationVariants
-                    .First(x => validMoves.Count(y => y.NotationVariants.Contains(x)) == 1);
+
+                IEnumerable<Move> validMoves = positionCopy.GetMoves(playerColor, true, true);
+
+                var shortNotation = computerMove.GetNotationVariants()
+                    .First(x => validMoves.Count(y => y.GetNotationVariants().Contains(x)) == 1);
+
                 Notate(computerMove, shortNotation);
 
                 position = Position.FromMoves(moves);
 
                 progressCurrent = 0;
                 await InvokeAsync(StateHasChanged);
-                await Task.Delay(250);
-            }
+                await Task.Delay(1);
 
-            PassTurn();
+                PassTurn();
+            }
+            else
+            {
+                Console.WriteLine("Computer has no legal moves");
+            }
         });
     }
 
-    void PassTurn()
+    private void PassTurn()
     {
         var lastMove = position.Moves.LastOrDefault();
 
@@ -503,6 +525,7 @@
             var positionCopy = Position.FromMoves(position.Moves);
             var sw = Stopwatch.StartNew();
             validMoves = positionCopy.GetMoves(position.ColorToMove, true, true).ToList();
+            Console.WriteLine($"Valid moves: {validMoves.Count} in {sw.ElapsedMilliseconds} ms");
             sw.Stop();        }
         else
         {
@@ -512,7 +535,7 @@
 
     private void OnWhitePlayerChange(string value)
     {
-        selectedWhitePlayer = value;
+        WhitePlayer = value;
 
         if (whitePlayer != 0 && position.ColorToMove == PieceColor.White)
         {
@@ -522,7 +545,7 @@
 
     private void OnBlackPlayerChange(string value)
     {
-        selectedBlackPlayer = value;
+        BlackPlayer = value;
 
         if (blackPlayer != 0 && position.ColorToMove == PieceColor.Black)
         {

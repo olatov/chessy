@@ -1,8 +1,4 @@
-﻿using System.Web;
-using Microsoft.AspNetCore.Html;
-using static System.Net.Mime.MediaTypeNames;
-
-namespace Chessy.Engine.Pieces;
+﻿namespace Chessy.Engine.Pieces;
 
 public enum PieceKind
 {
@@ -30,38 +26,31 @@ public class Piece : IPiece
         return $"{Color} {Kind}";
     }
 
-    public string Icon
+    public string Identifier
     {
-        get
+        get => Color switch
         {
-            switch (Color)
+            PieceColor.White => Kind switch
             {
-                case PieceColor.White:
-                    return Kind switch
-                    {
-                        PieceKind.King => "♔",
-                        PieceKind.Queen => "♕",
-                        PieceKind.Rook => "♖",
-                        PieceKind.Bishop => "♗",
-                        PieceKind.Knight => "♘",
-                        PieceKind.Pawn => "♙",
-                        _ => throw new NotImplementedException(),
-                    };
-
-                case PieceColor.Black:
-                    return Kind switch
-                    {
-                        PieceKind.King => "♚",
-                        PieceKind.Queen => "♛",
-                        PieceKind.Rook => "♜",
-                        PieceKind.Bishop => "♝",
-                        PieceKind.Knight => "♞",
-                        PieceKind.Pawn => "♟︎",
-                        _ => throw new NotImplementedException(),
-                    };
-            }
-
-            return string.Empty;
-        }
+                PieceKind.King => "♔",
+                PieceKind.Queen => "♕",
+                PieceKind.Rook => "♖",
+                PieceKind.Bishop => "♗",
+                PieceKind.Knight => "♘",
+                PieceKind.Pawn => "♙",
+                _ => throw new NotImplementedException(),
+            },
+            PieceColor.Black => Kind switch
+            {
+                PieceKind.King => "♚",
+                PieceKind.Queen => "♛",
+                PieceKind.Rook => "♜",
+                PieceKind.Bishop => "♝",
+                PieceKind.Knight => "♞",
+                PieceKind.Pawn => "♟︎",
+                _ => throw new NotImplementedException(),
+            },
+            _ => string.Empty,
+        };
     }
 }

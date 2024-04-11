@@ -1,15 +1,17 @@
-﻿using System.Text;
+﻿using System.Diagnostics;
+using System.Text;
+using Chessy.Engine.Extensions;
 using Chessy.Engine.Pieces;
 
 namespace Chessy.Engine;
 
-public class Move
+public class Move(IPiece piece, (int file, int rank) from, (int file, int rank) to)
 {
-    public (int file, int rank) From { get; set; }
+    public (int file, int rank) From { get; set; } = from;
 
-    public (int file, int rank) To { get; set; }
+    public (int file, int rank) To { get; set; } = to;
 
-    public IPiece? Piece { get; set; }
+    public IPiece Piece { get; set; } = piece;
 
     public bool IsCheck { get; set; }
 
@@ -23,9 +25,11 @@ public class Move
 
     public bool IsEnPassantCapture { get; set; }
 
+    public bool IsPawnDoubleMove => Piece?.Kind == PieceKind.Pawn && Math.Abs(From.rank - To.rank) == 2;
+
     public bool IsCastlingShort
     {
-        get => Piece.Kind == PieceKind.King
+        get => Piece?.Kind == PieceKind.King
             && From.file == 4
             && To.file == 6
             && From.rank == To.rank;
@@ -33,7 +37,7 @@ public class Move
 
     public bool IsCastlingLong
     {
-        get => Piece.Kind == PieceKind.King
+        get => Piece?.Kind == PieceKind.King
             && From.file == 4
             && To.file == 2
             && From.rank == To.rank;
@@ -41,105 +45,21 @@ public class Move
 
     public IPiece? CastlingRook { get; set; }
 
-    public PieceKind? PromotionPiece { get; set; }
+    public PieceKind? PromotionPieceKind { get; set; }
 
-    public bool IsPromotion { get => PromotionPiece is not null; }
+    public bool IsPromotion { get => PromotionPieceKind is not null; }
 
     public bool CouldCastleShort { get; set; }
 
     public bool CouldCastleLong { get; set; }
 
-    public IEnumerable<string> NotationVariants
+    public IEnumerable<string> GetNotationVariants()
     {
-        get
+        var result = new StringBuilder();
+
+        foreach (var variant in Enumerable.Range(1, 4))
         {
-            var result = new StringBuilder();
-
-            foreach (var variant in Enumerable.Range(1, 4))
-            {
-                result.Clear();
-
-                if (IsCastlingShort)
-                {
-                    result.Append("O-O");
-                }
-                else if (IsCastlingLong)
-                {
-                    result.Append("O-O-O");
-                }
-                else
-                {
-                    var piecePrefix = Piece.Kind switch
-                    {
-                        PieceKind.King => "♔",
-                        PieceKind.Queen => "♕",
-                        PieceKind.Rook => "♖",
-                        PieceKind.Bishop => "♗",
-                        PieceKind.Knight => "♘",
-                        _ => string.Empty
-                    };
-
-                    var fromFile = (char)((char)From.file + 'a');
-                    var fromRank = (char)((char)From.rank + '1');
-                    var toFile = (char)((char)To.file + 'a');
-                    var toRank = (char)((char)To.rank + '1');
-
-                    result.Append(piecePrefix);
-
-                    if (variant == 2 || variant == 4 || (Piece.Kind == PieceKind.Pawn && IsCapture))
-                    {
-                        result.Append(fromFile);
-                    }
-
-                    if (variant == 3 || variant == 4)
-                    {
-                        result.Append(fromRank);
-                    }
-
-                    if (IsCapture)
-                    {
-                        result.Append("x");
-                    }
-
-                    result.Append(toFile)
-                        .Append(toRank);
-
-                    if (IsPromotion)
-                    {
-                        var promotionPiecePrefix = PromotionPiece switch
-                        {
-                            PieceKind.King => "♔",
-                            PieceKind.Queen => "♕",
-                            PieceKind.Rook => "♖",
-                            PieceKind.Bishop => "♗",
-                            PieceKind.Knight => "♘",
-                            _ => string.Empty
-                        };
-
-                        result.Append("=")
-                            .Append(promotionPiecePrefix);
-                    }
-                }
-
-                if (IsCheckmate)
-                {
-                    result.Append("#");
-                }
-                else if (IsCheck)
-                {
-                    result.Append("+");
-                }
-
-                yield return result.ToString();
-            }
-        }
-    }
-
-    public string Notation
-    {
-        get
-        {
-            var result = new StringBuilder();
+            result.Clear();
 
             if (IsCastlingShort)
             {
@@ -151,28 +71,26 @@ public class Move
             }
             else
             {
-                var piecePrefix = Piece.Kind switch
-                {
-                    PieceKind.King => "♔",
-                    PieceKind.Queen => "♕",
-                    PieceKind.Rook => "♖",
-                    PieceKind.Bishop => "♗",
-                    PieceKind.Knight => "♘",
-                    _ => string.Empty
-                };
-
                 var fromFile = (char)((char)From.file + 'a');
                 var fromRank = (char)((char)From.rank + '1');
                 var toFile = (char)((char)To.file + 'a');
                 var toRank = (char)((char)To.rank + '1');
 
-                result.Append(piecePrefix)
-                    .Append(fromFile)
-                    .Append(fromRank);
+                result.Append(Piece!.Kind.Figurine());
+
+                if (variant == 2 || variant == 4 || (Piece?.Kind == PieceKind.Pawn && IsCapture))
+                {
+                    result.Append(fromFile);
+                }
+
+                if (variant == 3 || variant == 4)
+                {
+                    result.Append(fromRank);
+                }
 
                 if (IsCapture)
                 {
-                    result.Append("x");
+                    result.Append('x');
                 }
 
                 result.Append(toFile)
@@ -180,36 +98,23 @@ public class Move
 
                 if (IsPromotion)
                 {
-                    var promotionPiecePrefix = PromotionPiece switch
-                    {
-                        PieceKind.King => "♔",
-                        PieceKind.Queen => "♕",
-                        PieceKind.Rook => "♖",
-                        PieceKind.Bishop => "♗",
-                        PieceKind.Knight => "♘",
-                        _ => string.Empty
-                    };
-
-                    result.Append("=")
-                        .Append(promotionPiecePrefix);
+                    Trace.Assert(PromotionPieceKind is not null);
+                    result.Append('=').Append(PromotionPieceKind.Value.Figurine());
                 }
             }
 
             if (IsCheckmate)
             {
-                result.Append("#");
+                result.Append('#');
             }
             else if (IsCheck)
             {
-                result.Append("+");
+                result.Append('+');
             }
 
-            return result.ToString();
+            yield return result.ToString();
         }
     }
 
-    public override string ToString()
-    {
-        return Notation;
-    }
+    public override string ToString() => GetNotationVariants().Last();
 }

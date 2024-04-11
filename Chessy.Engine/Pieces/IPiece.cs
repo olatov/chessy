@@ -6,5 +6,5 @@ public interface IPiece
 
     public PieceKind Kind { get; set; }
 
-    public string Icon { get; }
+    public string Identifier { get; }
 }

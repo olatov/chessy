@@ -90,7 +90,8 @@ public class Position
 
         if (move.IsPromotion)
         {
-            move.Piece.Kind = move.PromotionPiece!.Value;
+            Trace.Assert(move.PromotionPieceKind is not null);
+            move.Piece.Kind = move.PromotionPieceKind.Value;
         }
 
         if (move.Piece.Kind == PieceKind.King)
@@ -189,7 +190,7 @@ public class Position
         else if (moves.Length == 1)
         {
             Console.WriteLine();
-            Console.WriteLine($"[Forced]\t{moves.Single().NotationVariants.First()}");
+            Console.WriteLine($"[Forced]\t{moves.Single().GetNotationVariants().First()}");
             return moves.Single();
         }
 
@@ -200,7 +201,6 @@ public class Position
         }
 
         _nodesCounter = 0;
-        Console.WriteLine($"Before FindBestMoveABAsync");
         var sw = Stopwatch.StartNew();
         var (bestMove, _) = await FindMoveABAsync(
             depth,
@@ -208,7 +208,6 @@ public class Position
             debug: true,
             legalChecks: true);
         sw.Stop();
-        Console.WriteLine($"After FindBestMoveABAsync");
 
         Console.WriteLine($"Nodes: {_nodesCounter / 1.0e+6:0.0}m ({_nodesCounter / sw.Elapsed.TotalSeconds / 1000.0:0.0}k / sec)");
         Console.WriteLine($"Time: {sw.Elapsed}");
@@ -220,7 +219,7 @@ public class Position
             && x.From.rank == bestMove.From.rank
             && x.To.file == bestMove.To.file
             && x.To.rank == bestMove.To.rank
-            && x.PromotionPiece == bestMove.PromotionPiece);
+            && x.PromotionPieceKind == bestMove.PromotionPieceKind);
     }
 
     public async Task<(Move? move, double score)> FindMoveABAsync(int depth, double alpha = double.MinValue, double beta = double.MaxValue, bool isMaximising = true, bool legalChecks = false, bool debug = false)
@@ -249,21 +248,9 @@ public class Position
             moveScores[index].Score = isMaximising ? Board.MaterialValue : -Board.MaterialValue;
             _nodesCounter++;
             UndoMove(move);
-            //moveScores[index].Score = res;
         }
 
         moves = moveScores.OrderByDescending(x => x.Score).Select(x => x.Move);
-
-        // if (depth > 0)
-        // {
-        //     moves = moves.OrderBy(async x =>
-        //     {
-        //         MakeMove(x);
-        //         var (_, res) = await FindMoveABAsync(0, -beta, -alpha, !isMaximising);
-        //         UndoMove(x);
-        //         return res;
-        //     }).ToList();
-        // }
 
         int total = moves.Count();
         foreach (var (move, counter) in moves.Zip(Enumerable.Range(1, total)))
@@ -274,14 +261,6 @@ public class Position
                 FindMoveProgress?.Invoke(this, new FindMoveProgressEventArgs { Current = counter, Total = total });
                 await Task.Delay(1);
             }
-            // Stopwatch? sw = null;
-            // if (debug)
-            // {
-            //     var shortNotation = move.NotationVariants
-            //         .First(x => moves.Count(y => y.NotationVariants.Contains(x)) == 1);
-            //     Console.Write($"[{counter} / {total}]\t{shortNotation,-8}\t");
-            //     sw = Stopwatch.StartNew();
-            // }
 
             double moveScore;
             if (move.IsStalemate)
@@ -313,21 +292,6 @@ public class Position
                     bestScore = moveScore;
                     bestMove = move;
                 }
-            }
-            if (debug)
-            {
-                // sw?.Stop();
-                // Console.Write($"{moveScore,6:0.00}\t");
-                // Console.Write(
-                //     (sw?.Elapsed.TotalMilliseconds >= 100)
-                //         ? $"{sw?.Elapsed.TotalSeconds,5:0.0}s\t"
-                //         : $"{"-",6}\t");
-
-                // if (bestMove == move)
-                // {
-                //     Console.Write("<-");
-                // }
-                // Console.WriteLine();
             }
 
             alpha = Math.Max(alpha, bestScore);
@@ -364,17 +328,17 @@ public class Position
                         var toSquare = Board.Squares[toFile, toRank];
                         if (fromSquare.Color == toSquare?.Color) { continue; }
 
-                        var move = new Move
+                        var move = new Move(
+                            piece: fromSquare,
+                            from: (fromFile, fromRank),
+                            to: (toFile, toRank))
                         {
-                            Piece = fromSquare,
                             CapturedPiece = toSquare,
-                            From = (fromFile, fromRank),
-                            To = (toFile, toRank),
                         };
 
                         if ((fromSquare.Kind == PieceKind.Pawn) && (toRank == 0 || toRank == 7))
                         {
-                            move.PromotionPiece = PieceKind.Queen;
+                            move.PromotionPieceKind = PieceKind.Queen;
                         }
 
                         if (move.IsCastlingShort)
