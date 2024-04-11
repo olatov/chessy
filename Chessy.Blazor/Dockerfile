@@ -1,15 +1,16 @@
 FROM mcr.microsoft.com/dotnet/aspnet:8.0-jammy-chiseled AS base
 WORKDIR /app
-EXPOSE 5083
+EXPOSE 80
 
-ENV ASPNETCORE_URLS=http://+:5083
+ENV ASPNETCORE_URLS=http://+:80
 
 USER app
 FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG configuration=Release
 WORKDIR /src
-COPY ["Chessy.Blazor/Chessy.Blazor.csproj", "Chessy.Blazor/"]
-COPY ["Chessy.Engine/Chessy.Engine.csproj", "Chessy.Engine/"]
+COPY ["Chessy.Blazor/*.csproj", "Chessy.Blazor/"]
+COPY ["Chessy.Engine/*.csproj", "Chessy.Components/"]
+COPY ["Chessy.Components/*.csproj", "Chessy.Engine/"]
 RUN dotnet restore "Chessy.Blazor/Chessy.Blazor.csproj"
 COPY . .
 WORKDIR "/src/Chessy.Blazor"
