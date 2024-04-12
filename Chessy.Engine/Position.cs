@@ -169,20 +169,31 @@ public class Position
     public void UndoMove(Move move)
     {
         Board.Squares[move.From.File, move.From.Rank] = move.Piece;
-        Board.Squares[move.To.File, move.To.Rank] = move.IsCapture ? move.CapturedPiece : null;
+
+        if (move.IsCapture)
+        {
+            if (move.IsEnPassantCapture)
+            {
+                var rank = move.Piece.Color == PieceColor.White ? 4 : 3;
+                Board[move.To] = null;
+                Board.Squares[move.To.File, rank] = move.CapturedPiece;
+            }
+            else
+            {
+                Board[move.To] = move.CapturedPiece;
+            }
+        }
+        else
+        {
+            Board[move.To] = null;
+        }
+
+        EnPassantTarget = EnPassantTargets.Pop();
 
         if (move.IsPromotion)
         {
             move.Piece.Kind = PieceKind.Pawn;
         }
-
-        if (move.IsEnPassantCapture)
-        {
-            var rank = move.Piece.Color == PieceColor.White ? 4 : 3;
-            Board.Squares[move.To.File, rank] = move.CapturedPiece;
-        }
-
-        EnPassantTarget = EnPassantTargets.Pop();
 
         if (move.IsCastlingShort)
         {
