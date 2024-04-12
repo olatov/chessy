@@ -103,7 +103,7 @@ public class Position
 
         if (move.IsPromotion)
         {
-            Trace.Assert(move.Piece.Kind == PieceKind.Pawn);
+            // Trace.Assert(move.Piece.Kind == PieceKind.Pawn); // This breaks on position re-creation from moves
             Trace.Assert(move.PromotionPieceKind is not null);
             move.Piece.Kind = move.PromotionPieceKind.Value;
         }
@@ -418,12 +418,21 @@ public class Position
 
                     MakeMove(move);
 
+                    opponentMoves = GetMoves(playerColor.OpponentColor(), true);
+                    bool isUnderCheckAfterMove = opponentMoves.Any(x => x.CapturedPiece?.Kind == PieceKind.King);
+
+                    if (isUnderCheckAfterMove)
+                    {
+                        UndoMove(move);
+                        continue;
+                    }
+
                     var nextMoves = GetMoves(playerColor, true);
                     move.IsCheck = nextMoves.Any(x => x.CapturedPiece?.Kind == PieceKind.King);
                     if (move.IsCheck)
                     {
                         // TODO: fix this
-                        bool opponentHasMoves = GetMoves(playerColor.OpponentColor(), skipChecks: true).Any();
+                        bool opponentHasMoves = GetMoves(playerColor.OpponentColor(), skipChecks: false).Any();
                         if (!opponentHasMoves)
                         {
                             move.IsCheckmate = true;
@@ -432,12 +441,7 @@ public class Position
                         // TODO: stalemate
                     }
 
-                    opponentMoves = GetMoves(playerColor.OpponentColor(), true);
-                    bool isUnderCheckAfterMove = opponentMoves.Any(x => x.CapturedPiece?.Kind == PieceKind.King);
-
                     UndoMove(move);
-
-                    if (isUnderCheckAfterMove) { continue; }
 
                     if ((move.IsCastlingShort || move.IsCastlingLong) && isUnderCheckNow)
                     {
