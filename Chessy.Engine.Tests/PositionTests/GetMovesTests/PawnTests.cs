@@ -235,7 +235,7 @@ public sealed class PawnTests
         _sut.AddPiece(enemyKing, Coords.Parse("e8"));
 
         // Act
-        var moves = _sut.GetMoves(pawn.Color, true, true);
+        var moves = _sut.GetMoves(pawn.Color);
 
         // Assert
         var notations = moves.Where(move => move.Piece == pawn)

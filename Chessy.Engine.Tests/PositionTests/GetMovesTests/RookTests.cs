@@ -118,7 +118,7 @@ public sealed class RookTests
         _sut.AddPiece(new Piece { Kind = PieceKind.King, Color = PieceColor.Black }, Coords.Parse("d8"));
 
         // Act
-        var moves = _sut.GetMoves(rook.Color, true, true);
+        var moves = _sut.GetMoves(rook.Color);
 
         // Assert
         moves.Should().Contain(move => move.IsCheck);
@@ -138,7 +138,7 @@ public sealed class RookTests
         _sut.AddPiece(new Piece { Kind = PieceKind.Queen, Color = PieceColor.Black }, Coords.Parse("a5"));
 
         // Act
-        var moves = _sut.GetMoves(rook.Color, true, true);
+        var moves = _sut.GetMoves(rook.Color);
 
         // Assert
         moves.Should().NotContain(move => move.Piece == rook);

@@ -332,7 +332,7 @@
 
         if (whitePlayer == 0)
         {
-            validMoves = position.GetMoves(PieceColor.White, true, true).ToList();
+            validMoves = position.GetMoves(PieceColor.White).ToList();
         }
         else
         {
@@ -479,7 +479,7 @@
                 var moves = positionCopy.Moves;
                 moves.Add(computerMove);
 
-                IEnumerable<Move> validMoves = positionCopy.GetMoves(playerColor, true, true);
+                IEnumerable<Move> validMoves = positionCopy.GetMoves(playerColor);
 
                 var shortNotation = computerMove.GetNotationVariants()
                     .First(x => validMoves.Count(y => y.GetNotationVariants().Contains(x)) == 1);
@@ -524,9 +524,10 @@
         {
             var positionCopy = Position.FromMoves(position.Moves);
             var sw = Stopwatch.StartNew();
-            validMoves = positionCopy.GetMoves(position.ColorToMove, true, true).ToList();
+            validMoves = positionCopy.GetMoves(position.ColorToMove).ToList();
             Console.WriteLine($"Valid moves: {validMoves.Count} in {sw.ElapsedMilliseconds} ms");
-            sw.Stop();        }
+            sw.Stop();
+        }
         else
         {
             ComputerMove(position.ColorToMove);

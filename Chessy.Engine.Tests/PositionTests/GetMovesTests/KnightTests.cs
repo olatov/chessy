@@ -67,7 +67,6 @@ public sealed class KnightTests
         _sut.AddPiece(knight, Coords.Parse("h8"));
         _sut.AddPiece(new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White }, Coords.Parse("g7"));
         _sut.AddPiece(new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White }, Coords.Parse("h7"));
-        _sut.AddPiece(new Piece { Kind = PieceKind.King, Color = PieceColor.Black }, Coords.Parse("g8"));
         string[] expected = ["Nf7", "Ng6"];
 
         // Act
@@ -125,14 +124,14 @@ public sealed class KnightTests
         _sut.AddPiece(enemyKing, Coords.Parse("e8"));
 
         // Act
-        var moves = _sut.GetMoves(knight.Color, true, true);
+        var moves = _sut.GetMoves(knight.Color);
 
         // Assert
         var notations = moves.Where(move => move.Piece == knight)
             .Select(move => move.GetNotationVariants().First());
         notations.Should().Contain("Nc7+");
         notations.Should().Contain("Nd6+");
-    }    
+    }
 
     [Fact]
     public void ShouldNotMove_WhenWouldPutOwnKingInCheck()

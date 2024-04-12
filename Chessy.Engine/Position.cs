@@ -218,7 +218,7 @@ public class Position
     public async Task<Move?> FindBestMoveABAsync(PieceColor playerColor, int depth = 1)
     {
         Console.WriteLine("Finding best move...");
-        var moves = GetMoves(playerColor, true, true).ToArray();
+        var moves = GetMoves(playerColor).ToArray();
         Console.WriteLine($"Moves: {moves.Length}");
         if (moves.Length == 0)
         {
@@ -242,8 +242,7 @@ public class Position
         var (bestMove, _) = await FindMoveABAsync(
             depth,
             isMaximising: playerColor == PieceColor.White,
-            debug: true,
-            legalChecks: true);
+            isTopLevel: true);
         sw.Stop();
 
         Console.WriteLine($"Nodes: {_nodesCounter / 1.0e+6:0.0}m ({_nodesCounter / sw.Elapsed.TotalSeconds / 1000.0:0.0}k / sec)");
@@ -259,7 +258,7 @@ public class Position
             && x.PromotionPieceKind == bestMove.PromotionPieceKind);
     }
 
-    public async Task<(Move? move, double score)> FindMoveABAsync(int depth, double alpha = double.MinValue, double beta = double.MaxValue, bool isMaximising = true, bool legalChecks = false, bool debug = false)
+    public async Task<(Move? move, double score)> FindMoveABAsync(int depth, double alpha = double.MinValue, double beta = double.MaxValue, bool isMaximising = true, bool isTopLevel = true)
     {
         if (depth == 0)
         {
@@ -267,7 +266,9 @@ public class Position
             return (null, isMaximising ? Board.MaterialValue : -Board.MaterialValue);
         }
 
-        var moves = GetMoves(isMaximising ? PieceColor.White : PieceColor.Black, legalChecks, fullInfo: debug);
+        var moves = GetMoves(
+            isMaximising ? PieceColor.White : PieceColor.Black,
+            skipChecks: !isTopLevel);
         if (!moves.Any())
         {
             return (null, 0);
@@ -292,7 +293,7 @@ public class Position
         int total = moves.Count();
         foreach (var (move, counter) in moves.Zip(Enumerable.Range(1, total)))
         {
-            if (debug)
+            if (isTopLevel)
             {
                 Console.WriteLine($"[{counter} / {total}]\t");
                 FindMoveProgress?.Invoke(this, new FindMoveProgressEventArgs { Current = counter, Total = total });
@@ -314,7 +315,8 @@ public class Position
                 else
                 {
                     MakeMove(move);
-                    (_, moveScore) = await FindMoveABAsync(depth - 1, -beta, -alpha, !isMaximising);
+                    (_, moveScore) = await FindMoveABAsync(
+                        depth - 1, -beta, -alpha, !isMaximising, isTopLevel: false);
                     UndoMove(move);
                 }
                 moveScore = -moveScore;
@@ -347,8 +349,10 @@ public class Position
     }
 
 
-    public IEnumerable<Move> GetMoves(PieceColor playerColor, bool legalChecks = true, bool fullInfo = false)
+    public IEnumerable<Move> GetMoves(PieceColor playerColor, bool skipChecks = false)
     {
+        // TODO: find a better approach
+
         bool isLegal = false;
 
         foreach (int fromFile in Enumerable.Range(0, 8))
@@ -392,18 +396,12 @@ public class Position
 
                         if (move.IsCastlingShort)
                         {
-                            if (Board.Squares[5, fromRank] is not null)
-                            {
-                                continue;
-                            }
+                            if (Board.Squares[5, fromRank] is not null) { continue; }
                             move.CastlingRook = Board.Squares[7, fromRank];
                         }
                         else if (move.IsCastlingLong)
                         {
-                            if (Board.Squares[3, fromRank] is not null)
-                            {
-                                continue;
-                            }
+                            if (Board.Squares[3, fromRank] is not null) { continue; }
                             move.CastlingRook = Board.Squares[0, fromRank];
                         }
 
@@ -420,17 +418,17 @@ public class Position
 
                         isLegal = IsLegalMove(move);
 
-                        if (isLegal && legalChecks)
+                        if (isLegal && !skipChecks)
                         {
                             MakeMove(move);
-                            var opponentMoves = GetMoves(playerColor.OpponentColor(), false, false);
+                            var opponentMoves = GetMoves(playerColor.OpponentColor(), true);
                             isLegal = !opponentMoves.Any(x => Board.Squares[x.To.File, x.To.Rank]?.Kind == PieceKind.King);
                             UndoMove(move);
                         }
 
-                        if (isLegal && legalChecks && (move.IsCastlingShort || move.IsCastlingLong))
+                        if (isLegal && !skipChecks && (move.IsCastlingShort || move.IsCastlingLong))
                         {
-                            var opponentMoves = GetMoves(playerColor.OpponentColor(), false);
+                            var opponentMoves = GetMoves(playerColor.OpponentColor(), true);
                             isLegal = !opponentMoves.Any(x => Board.Squares[x.To.File, x.To.Rank]?.Kind == PieceKind.King);
                             if (move.IsCastlingShort)
                             {
@@ -442,17 +440,21 @@ public class Position
                             }
                         }
 
-                        if (isLegal && fullInfo)
+                        if (isLegal && !skipChecks)
                         {
                             MakeMove(move);
-                            var nextMoves = GetMoves(playerColor, false, false);
+                            var nextMoves = GetMoves(playerColor, true);
                             move.IsCheck = nextMoves.Any(x => x.CapturedPiece?.Kind == PieceKind.King);
 
-                            bool opponentHasMoves = GetMoves(playerColor.OpponentColor(), true, false).Any();
-                            if (!opponentHasMoves)
+                            if (move.IsCheck)
                             {
-                                move.IsCheckmate = move.IsCheck;
-                                move.IsStalemate = !move.IsCheck;
+                                bool opponentHasMoves = GetMoves(playerColor.OpponentColor(), skipChecks: false).Any();
+                                if (!opponentHasMoves)
+                                {
+                                    move.IsCheckmate = true;
+                                }
+
+                                // TODO: stalemate
                             }
                             UndoMove(move);
                         }
