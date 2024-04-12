@@ -421,7 +421,8 @@ public class Position
                     move.IsCheck = nextMoves.Any(x => x.CapturedPiece?.Kind == PieceKind.King);
                     if (move.IsCheck)
                     {
-                        bool opponentHasMoves = GetMoves(playerColor.OpponentColor(), skipChecks: false).Any();
+                        // TODO: fix this
+                        bool opponentHasMoves = GetMoves(playerColor.OpponentColor(), skipChecks: true).Any();
                         if (!opponentHasMoves)
                         {
                             move.IsCheckmate = true;

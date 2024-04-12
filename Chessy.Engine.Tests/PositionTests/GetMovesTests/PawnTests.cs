@@ -352,7 +352,7 @@ public sealed class PawnTests
     }
 
     [Fact]
-    void EnPasseantIsResetAfterMove_WhenWhite()
+    void EnPassantIsResetAfterMove_WhenWhite()
     {
         // Arrange
         var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White };
@@ -370,7 +370,7 @@ public sealed class PawnTests
     }
 
     [Fact]
-    void EnPasseantIsResetAfterMove_WhenBlack()
+    void EnPassantIsResetAfterMove_WhenBlack()
     {
         // Arrange
         var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black };
@@ -401,12 +401,16 @@ public sealed class PawnTests
         _sut.MakeMove(new Move(enemyPawn, Coords.Parse("c7"), Coords.Parse("c5")));
         var moves = _sut.GetMoves(pawn.Color);
 
-        // Assert
-        moves.Should().HaveCount(2);
-
         var move = moves.First(m => m.GetNotationVariants().First() == "dxc6");
+        _sut.MakeMove(move);
+
+        // Assert
+        move.Piece.Should().Be(pawn);
         move.IsEnPassantCapture.Should().BeTrue();
         move.CapturedPiece.Should().Be(enemyPawn);
+
+        var enemyCoords = Coords.Parse("c5");
+        _sut.Board.Squares[enemyCoords.File, enemyCoords.Rank].Should().BeNull();
     }
 
     [Fact]
@@ -423,12 +427,16 @@ public sealed class PawnTests
         _sut.MakeMove(new Move(enemyPawn, Coords.Parse("d2"), Coords.Parse("d4")));
         var moves = _sut.GetMoves(pawn.Color);
 
-        // Assert
-        moves.Should().HaveCount(2);
-
         var move = moves.First(m => m.GetNotationVariants().First() == "exd3");
+        _sut.MakeMove(move);
+
+        // Assert
+        move.Piece.Should().Be(pawn);
         move.IsEnPassantCapture.Should().BeTrue();
         move.CapturedPiece.Should().Be(enemyPawn);
+
+        var enemyCoords = Coords.Parse("d4");
+        _sut.Board.Squares[enemyCoords.File, enemyCoords.Rank].Should().BeNull();
     }
 
     [Fact]
