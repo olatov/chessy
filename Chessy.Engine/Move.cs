@@ -5,7 +5,7 @@ using Chessy.Engine.Pieces;
 
 namespace Chessy.Engine;
 
-public class Move(IPiece piece, Coords from, Coords to)
+public class Move(IPiece piece, Coords from, Coords to, PieceKind? promitionPieceKind = null)
 {
     public Coords From { get; set; } = from;
 
@@ -29,10 +29,11 @@ public class Move(IPiece piece, Coords from, Coords to)
         new Coords(To.File, Piece.Color == PieceColor.White ? 2 : 5)
         : null;
 
-    public static Move For(IPiece piece, Coords from, Coords to) => new(piece, from, to);
+    public static Move For(IPiece piece, Coords from, Coords to, PieceKind? promitionPieceKind = null) =>
+        new(piece, from, to) { PromotionPieceKind = promitionPieceKind };
 
-    public static Move For(IPiece piece, string from, string to) =>
-        new(piece, Coords.Parse(from), Coords.Parse(to));
+    public static Move For(IPiece piece, string from, string to, PieceKind? promitionPieceKind = null) =>
+        new(piece, Coords.Parse(from), Coords.Parse(to), promitionPieceKind);
 
     public bool IsPawnDoubleMove => Piece?.Kind == PieceKind.Pawn && Math.Abs(From.Rank - To.Rank) == 2;
 
@@ -54,9 +55,9 @@ public class Move(IPiece piece, Coords from, Coords to)
 
     public IPiece? CastlingRook { get; set; }
 
-    public PieceKind? PromotionPieceKind { get; set; }
+    public PieceKind? PromotionPieceKind { get; set; } = promitionPieceKind;
 
-    public bool IsPromotion { get; set; } = false;
+    public bool IsPromotion => PromotionPieceKind is not null;
 
     public bool CouldCastleShort { get; set; }
 
@@ -72,7 +73,6 @@ public class Move(IPiece piece, Coords from, Coords to)
             CapturedPiece = CapturedPiece,
             IsEnPassantCapture = IsEnPassantCapture,
             CastlingRook = CastlingRook,
-            IsPromotion = IsPromotion,
             PromotionPieceKind = PromotionPieceKind,
             CouldCastleShort = CouldCastleShort,
             CouldCastleLong = CouldCastleLong

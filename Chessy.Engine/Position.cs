@@ -103,6 +103,7 @@ public class Position
 
         if (move.IsPromotion)
         {
+            Trace.Assert(move.Piece.Kind == PieceKind.Pawn);
             Trace.Assert(move.PromotionPieceKind is not null);
             move.Piece.Kind = move.PromotionPieceKind.Value;
         }
@@ -364,7 +365,6 @@ public class Position
                 {
                     if (move.To.Rank is 0 or 7)
                     {
-                        move.IsPromotion = true;
                         move.PromotionPieceKind = PieceKind.Queen;
                     }
 
