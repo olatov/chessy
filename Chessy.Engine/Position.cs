@@ -353,8 +353,6 @@ public class Position
     {
         // TODO: find a better approach
 
-        bool isLegal = false;
-
         foreach (int fromFile in Enumerable.Range(0, 8))
         {
             foreach (int fromRank in Enumerable.Range(0, 8))
@@ -416,36 +414,17 @@ public class Position
                             move.CouldCastleLong = CastlingRights.BlackLong;
                         }
 
-                        isLegal = IsLegalMove(move);
+                        if (!IsLegalMove(move)) { continue; }
 
-                        if (isLegal && !skipChecks)
-                        {
-                            MakeMove(move);
-                            var opponentMoves = GetMoves(playerColor.OpponentColor(), true);
-                            isLegal = !opponentMoves.Any(x => Board.Squares[x.To.File, x.To.Rank]?.Kind == PieceKind.King);
-                            UndoMove(move);
-                        }
-
-                        if (isLegal && !skipChecks && (move.IsCastlingShort || move.IsCastlingLong))
+                        if (!skipChecks)
                         {
                             var opponentMoves = GetMoves(playerColor.OpponentColor(), true);
-                            isLegal = !opponentMoves.Any(x => Board.Squares[x.To.File, x.To.Rank]?.Kind == PieceKind.King);
-                            if (move.IsCastlingShort)
-                            {
-                                isLegal = isLegal && !opponentMoves.Any(x => x.To.File == (move.To.File - 1) && x.To.Rank == move.To.Rank);
-                            }
-                            else if (move.IsCastlingLong)
-                            {
-                                isLegal = isLegal && !opponentMoves.Any(x => x.To.File == (move.To.File + 1) && x.To.Rank == move.To.Rank);
-                            }
-                        }
+                            bool isUnderCheckNow = opponentMoves.Any(x => x.CapturedPiece?.Kind == PieceKind.King);
 
-                        if (isLegal && !skipChecks)
-                        {
                             MakeMove(move);
+
                             var nextMoves = GetMoves(playerColor, true);
                             move.IsCheck = nextMoves.Any(x => x.CapturedPiece?.Kind == PieceKind.King);
-
                             if (move.IsCheck)
                             {
                                 bool opponentHasMoves = GetMoves(playerColor.OpponentColor(), skipChecks: false).Any();
@@ -456,22 +435,30 @@ public class Position
 
                                 // TODO: stalemate
                             }
+
+                            opponentMoves = GetMoves(playerColor.OpponentColor(), true);
+                            bool isUnderCheckAfterMove = opponentMoves.Any(x => x.CapturedPiece?.Kind == PieceKind.King);
+
                             UndoMove(move);
+
+                            if (isUnderCheckAfterMove) { continue; }
+
+                            if ((move.IsCastlingShort || move.IsCastlingLong) && isUnderCheckNow)
+                            {
+                                continue;
+                            }
                         }
 
-                        if (isLegal)
-                        {
-                            yield return move;
+                        yield return move;
 
-                            if (move.IsPromotion)
+                        if (move.IsPromotion)
+                        {
+                            foreach (var promotionPieceKind in
+                                new[] { PieceKind.Rook, PieceKind.Bishop, PieceKind.Knight })
                             {
-                                foreach (var promotionPieceKind in
-                                    new[] { PieceKind.Rook, PieceKind.Bishop, PieceKind.Knight })
-                                {
-                                    var moveCopy = move.Copy();
-                                    moveCopy.PromotionPieceKind = promotionPieceKind;
-                                    yield return moveCopy;
-                                }
+                                var moveCopy = move.Copy();
+                                moveCopy.PromotionPieceKind = promotionPieceKind;
+                                yield return moveCopy;
                             }
                         }
                     }
