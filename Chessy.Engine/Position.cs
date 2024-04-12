@@ -175,17 +175,18 @@ public class Position
             if (move.IsEnPassantCapture)
             {
                 var rank = move.Piece.Color == PieceColor.White ? 4 : 3;
-                Board[move.To] = null;
+                Board.Squares[move.To.File, move.To.Rank] = null;
                 Board.Squares[move.To.File, rank] = move.CapturedPiece;
             }
             else
             {
-                Board[move.To] = move.CapturedPiece;
+                Board.Squares[move.To.File, move.To.Rank] = move.CapturedPiece;
             }
         }
         else
         {
-            Board[move.To] = null;
+            // TODO: Board[move.To] bugs out in wasm
+            Board.Squares[move.To.File, move.To.Rank] = null;
         }
 
         EnPassantTarget = EnPassantTargets.Pop();
@@ -365,7 +366,7 @@ public class Position
                 if (from == to || Board.Squares[to.File, to.Rank]?.Color == playerColor) { continue; }
 
                 IEnumerable<PieceKind?> promotionPieceKinds =
-                    Board[from]?.Kind == PieceKind.Pawn && (to.Rank is 0 or 7)
+                    Board.Squares[from.File, from.Rank]?.Kind == PieceKind.Pawn && (to.Rank is 0 or 7)
                         ? [PieceKind.Queen, PieceKind.Rook, PieceKind.Bishop, PieceKind.Knight]
                         : new[] { null as PieceKind? };
 
