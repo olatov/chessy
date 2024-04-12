@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Reflection;
 using Chessy.Engine.Events;
 using Chessy.Engine.Extensions;
 using Chessy.Engine.Pieces;
@@ -353,114 +354,105 @@ public class Position
     {
         // TODO: find a better approach
 
-        foreach (int fromFile in Enumerable.Range(0, 8))
+        foreach (Coords from in Board.GetPiecesCoords(playerColor))
         {
-            foreach (int fromRank in Enumerable.Range(0, 8))
+            Trace.Assert(Board.Squares[from.File, from.Rank] is not null);
+
+            foreach (Coords to in Board.GetAllSquares())
             {
-                var fromSquare = Board.Squares[fromFile, fromRank];
-                if (fromSquare?.Color != playerColor) { continue; }
+                if (from == to || Board.Squares[to.File, to.Rank]?.Color == playerColor) { continue; }
 
-                foreach (int toFile in Enumerable.Range(0, 8))
+                var move = new Move(
+                    piece: Board.Squares[from.File, from.Rank]!,
+                    from: from,
+                    to: to)
                 {
-                    foreach (int toRank in Enumerable.Range(0, 8))
+                    CapturedPiece = Board.Squares[to.File, to.Rank]
+                };
+
+                if (move.Piece.Kind == PieceKind.Pawn)
+                {
+                    if (move.To.Rank is 0 or 7)
                     {
-                        var toSquare = Board.Squares[toFile, toRank];
-                        if (fromSquare.Color == toSquare?.Color) { continue; }
+                        move.IsPromotion = true;
+                        move.PromotionPieceKind = PieceKind.Queen;
+                    }
 
-                        var move = new Move(
-                            piece: fromSquare,
-                            from: new(fromFile, fromRank),
-                            to: new(toFile, toRank))
+                    if (move.To == EnPassantTarget)
+                    {
+                        move.IsEnPassantCapture = true;
+                        var rank = playerColor == PieceColor.White ? 4 : 3;
+                        move.CapturedPiece = Board.Squares[move.To.File, rank];
+                    }
+                }
+
+                if (move.IsCastlingShort)
+                {
+                    if (Board.Squares[5, from.Rank] is not null) { continue; }
+                    move.CastlingRook = Board.Squares[7, from.Rank];
+                }
+                else if (move.IsCastlingLong)
+                {
+                    if (Board.Squares[3, from.Rank] is not null) { continue; }
+                    move.CastlingRook = Board.Squares[0, from.Rank];
+                }
+
+                if (playerColor == PieceColor.White)
+                {
+                    move.CouldCastleShort = CastlingRights.WhiteShort;
+                    move.CouldCastleLong = CastlingRights.WhiteLong;
+                }
+                else
+                {
+                    move.CouldCastleShort = CastlingRights.BlackShort;
+                    move.CouldCastleLong = CastlingRights.BlackLong;
+                }
+
+                if (!IsLegalMove(move)) { continue; }
+
+                if (!skipChecks)
+                {
+                    var opponentMoves = GetMoves(playerColor.OpponentColor(), true);
+                    bool isUnderCheckNow = opponentMoves.Any(x => x.CapturedPiece?.Kind == PieceKind.King);
+
+                    MakeMove(move);
+
+                    var nextMoves = GetMoves(playerColor, true);
+                    move.IsCheck = nextMoves.Any(x => x.CapturedPiece?.Kind == PieceKind.King);
+                    if (move.IsCheck)
+                    {
+                        bool opponentHasMoves = GetMoves(playerColor.OpponentColor(), skipChecks: false).Any();
+                        if (!opponentHasMoves)
                         {
-                            CapturedPiece = toSquare,
-                        };
-
-
-                        if (move.Piece.Kind == PieceKind.Pawn)
-                        {
-                            if (move.To.Rank is 0 or 7)
-                            {
-                                move.IsPromotion = true;
-                                move.PromotionPieceKind = PieceKind.Queen;
-                            }
-
-                            if (move.To == EnPassantTarget)
-                            {
-                                move.IsEnPassantCapture = true;
-                                var rank = playerColor == PieceColor.White ? 4 : 3;
-                                move.CapturedPiece = Board.Squares[move.To.File, rank];
-                            }
+                            move.IsCheckmate = true;
                         }
 
-                        if (move.IsCastlingShort)
-                        {
-                            if (Board.Squares[5, fromRank] is not null) { continue; }
-                            move.CastlingRook = Board.Squares[7, fromRank];
-                        }
-                        else if (move.IsCastlingLong)
-                        {
-                            if (Board.Squares[3, fromRank] is not null) { continue; }
-                            move.CastlingRook = Board.Squares[0, fromRank];
-                        }
+                        // TODO: stalemate
+                    }
 
-                        if (fromSquare.Color == PieceColor.White)
-                        {
-                            move.CouldCastleShort = CastlingRights.WhiteShort;
-                            move.CouldCastleLong = CastlingRights.WhiteLong;
-                        }
-                        else
-                        {
-                            move.CouldCastleShort = CastlingRights.BlackShort;
-                            move.CouldCastleLong = CastlingRights.BlackLong;
-                        }
+                    opponentMoves = GetMoves(playerColor.OpponentColor(), true);
+                    bool isUnderCheckAfterMove = opponentMoves.Any(x => x.CapturedPiece?.Kind == PieceKind.King);
 
-                        if (!IsLegalMove(move)) { continue; }
+                    UndoMove(move);
 
-                        if (!skipChecks)
-                        {
-                            var opponentMoves = GetMoves(playerColor.OpponentColor(), true);
-                            bool isUnderCheckNow = opponentMoves.Any(x => x.CapturedPiece?.Kind == PieceKind.King);
+                    if (isUnderCheckAfterMove) { continue; }
 
-                            MakeMove(move);
+                    if ((move.IsCastlingShort || move.IsCastlingLong) && isUnderCheckNow)
+                    {
+                        continue;
+                    }
+                }
 
-                            var nextMoves = GetMoves(playerColor, true);
-                            move.IsCheck = nextMoves.Any(x => x.CapturedPiece?.Kind == PieceKind.King);
-                            if (move.IsCheck)
-                            {
-                                bool opponentHasMoves = GetMoves(playerColor.OpponentColor(), skipChecks: false).Any();
-                                if (!opponentHasMoves)
-                                {
-                                    move.IsCheckmate = true;
-                                }
+                yield return move;
 
-                                // TODO: stalemate
-                            }
-
-                            opponentMoves = GetMoves(playerColor.OpponentColor(), true);
-                            bool isUnderCheckAfterMove = opponentMoves.Any(x => x.CapturedPiece?.Kind == PieceKind.King);
-
-                            UndoMove(move);
-
-                            if (isUnderCheckAfterMove) { continue; }
-
-                            if ((move.IsCastlingShort || move.IsCastlingLong) && isUnderCheckNow)
-                            {
-                                continue;
-                            }
-                        }
-
-                        yield return move;
-
-                        if (move.IsPromotion)
-                        {
-                            foreach (var promotionPieceKind in
-                                new[] { PieceKind.Rook, PieceKind.Bishop, PieceKind.Knight })
-                            {
-                                var moveCopy = move.Copy();
-                                moveCopy.PromotionPieceKind = promotionPieceKind;
-                                yield return moveCopy;
-                            }
-                        }
+                if (move.IsPromotion)
+                {
+                    foreach (var promotionPieceKind in
+                        new[] { PieceKind.Rook, PieceKind.Bishop, PieceKind.Knight })
+                    {
+                        var moveCopy = move.Copy();
+                        moveCopy.PromotionPieceKind = promotionPieceKind;
+                        yield return moveCopy;
                     }
                 }
             }

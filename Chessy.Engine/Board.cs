@@ -5,7 +5,33 @@ namespace Chessy.Engine;
 
 public record Board
 {
-    public IPiece?[,] Squares = new IPiece?[8, 8];
+    public IPiece?[,] Squares { get; set; } = new IPiece?[8, 8];
+
+    public IEnumerable<Coords> GetPiecesCoords(PieceColor color)
+    {
+        foreach (var file in Enumerable.Range(0, 8))
+        {
+            foreach (var rank in Enumerable.Range(0, 8))
+            {
+                var piece = Squares[file, rank];
+                if (piece is not null && piece.Color == color)
+                {
+                    yield return new Coords(file, rank);
+                }
+            }
+        }
+    }
+
+    public IEnumerable<Coords> GetAllSquares()
+    {
+        foreach (var file in Enumerable.Range(0, 8))
+        {
+            foreach (var rank in Enumerable.Range(0, 8))
+            {
+                yield return new Coords(file, rank);
+            }
+        }
+    }
 
     public bool IsClearBetween(Coords square1, Coords square2)
     {
