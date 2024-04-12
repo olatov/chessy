@@ -364,102 +364,92 @@ public class Position
             {
                 if (from == to || Board.Squares[to.File, to.Rank]?.Color == playerColor) { continue; }
 
-                var move = new Move(
-                    piece: Board.Squares[from.File, from.Rank]!,
-                    from: from,
-                    to: to)
-                {
-                    CapturedPiece = Board.Squares[to.File, to.Rank]
-                };
+                IEnumerable<PieceKind?> promotionPieceKinds =
+                    Board[from]?.Kind == PieceKind.Pawn && (to.Rank is 0 or 7)
+                        ? [PieceKind.Queen, PieceKind.Rook, PieceKind.Bishop, PieceKind.Knight]
+                        : new[] { null as PieceKind? };
 
-                if (move.Piece.Kind == PieceKind.Pawn)
+                foreach (var promotionPieceKind in promotionPieceKinds)
                 {
-                    if (move.To.Rank is 0 or 7)
+                    var move = new Move(
+                        piece: Board.Squares[from.File, from.Rank]!,
+                        from: from,
+                        to: to)
                     {
-                        move.PromotionPieceKind = PieceKind.Queen;
-                    }
+                        CapturedPiece = Board[to],
+                        PromotionPieceKind = promotionPieceKind
+                    };
 
-                    if (move.To == EnPassantTarget)
+                    if (move.Piece.Kind == PieceKind.Pawn && move.To == EnPassantTarget)
                     {
                         move.IsEnPassantCapture = true;
                         var rank = playerColor == PieceColor.White ? 4 : 3;
                         move.CapturedPiece = Board.Squares[move.To.File, rank];
                     }
-                }
 
-                if (move.IsCastlingShort)
-                {
-                    if (Board.Squares[5, from.Rank] is not null) { continue; }
-                    move.CastlingRook = Board.Squares[7, from.Rank];
-                }
-                else if (move.IsCastlingLong)
-                {
-                    if (Board.Squares[3, from.Rank] is not null) { continue; }
-                    move.CastlingRook = Board.Squares[0, from.Rank];
-                }
-
-                if (playerColor == PieceColor.White)
-                {
-                    move.CouldCastleShort = CastlingRights.WhiteShort;
-                    move.CouldCastleLong = CastlingRights.WhiteLong;
-                }
-                else
-                {
-                    move.CouldCastleShort = CastlingRights.BlackShort;
-                    move.CouldCastleLong = CastlingRights.BlackLong;
-                }
-
-                if (!IsLegalMove(move)) { continue; }
-
-                if (!skipChecks)
-                {
-                    var opponentMoves = GetMoves(playerColor.OpponentColor(), true);
-                    bool isUnderCheckNow = opponentMoves.Any(x => x.CapturedPiece?.Kind == PieceKind.King);
-
-                    MakeMove(move);
-
-                    opponentMoves = GetMoves(playerColor.OpponentColor(), true);
-                    bool isUnderCheckAfterMove = opponentMoves.Any(x => x.CapturedPiece?.Kind == PieceKind.King);
-
-                    if (isUnderCheckAfterMove)
+                    if (move.IsCastlingShort)
                     {
-                        UndoMove(move);
-                        continue;
+                        if (Board.Squares[5, from.Rank] is not null) { break; }
+                        move.CastlingRook = Board.Squares[7, from.Rank];
+                    }
+                    else if (move.IsCastlingLong)
+                    {
+                        if (Board.Squares[3, from.Rank] is not null) { break; }
+                        move.CastlingRook = Board.Squares[0, from.Rank];
                     }
 
-                    var nextMoves = GetMoves(playerColor, true);
-                    move.IsCheck = nextMoves.Any(x => x.CapturedPiece?.Kind == PieceKind.King);
-                    if (move.IsCheck)
+                    if (playerColor == PieceColor.White)
                     {
-                        // TODO: fix this
-                        bool opponentHasMoves = GetMoves(playerColor.OpponentColor(), skipChecks: false).Any();
-                        if (!opponentHasMoves)
+                        move.CouldCastleShort = CastlingRights.WhiteShort;
+                        move.CouldCastleLong = CastlingRights.WhiteLong;
+                    }
+                    else
+                    {
+                        move.CouldCastleShort = CastlingRights.BlackShort;
+                        move.CouldCastleLong = CastlingRights.BlackLong;
+                    }
+
+                    if (!IsLegalMove(move)) { break; }
+
+                    if (!skipChecks)
+                    {
+                        var opponentMoves = GetMoves(playerColor.OpponentColor(), true);
+                        bool isUnderCheckNow = opponentMoves.Any(x => x.CapturedPiece?.Kind == PieceKind.King);
+
+                        MakeMove(move);
+
+                        opponentMoves = GetMoves(playerColor.OpponentColor(), true);
+                        bool isUnderCheckAfterMove = opponentMoves.Any(x => x.CapturedPiece?.Kind == PieceKind.King);
+
+                        if (isUnderCheckAfterMove)
                         {
-                            move.IsCheckmate = true;
+                            UndoMove(move);
+                            break;
                         }
 
-                        // TODO: stalemate
+                        var nextMoves = GetMoves(playerColor, true);
+                        move.IsCheck = nextMoves.Any(x => x.CapturedPiece?.Kind == PieceKind.King);
+                        if (move.IsCheck)
+                        {
+                            // TODO: fix this
+                            bool opponentHasMoves = GetMoves(playerColor.OpponentColor(), skipChecks: false).Any();
+                            if (!opponentHasMoves)
+                            {
+                                move.IsCheckmate = true;
+                            }
+
+                            // TODO: stalemate
+                        }
+
+                        UndoMove(move);
+
+                        if ((move.IsCastlingShort || move.IsCastlingLong) && isUnderCheckNow)
+                        {
+                            break;
+                        }
                     }
 
-                    UndoMove(move);
-
-                    if ((move.IsCastlingShort || move.IsCastlingLong) && isUnderCheckNow)
-                    {
-                        continue;
-                    }
-                }
-
-                yield return move;
-
-                if (move.IsPromotion)
-                {
-                    foreach (var promotionPieceKind in
-                        new[] { PieceKind.Rook, PieceKind.Bishop, PieceKind.Knight })
-                    {
-                        var moveCopy = move.Copy();
-                        moveCopy.PromotionPieceKind = promotionPieceKind;
-                        yield return moveCopy;
-                    }
+                    yield return move;
                 }
             }
         }

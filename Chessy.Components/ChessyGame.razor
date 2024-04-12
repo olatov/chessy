@@ -359,48 +359,48 @@
         {
             currentMove.To = new(file, rank);
 
-            var moveIndex = validMoves.ToList().FindIndex(x =>
+            var matchingMoves = validMoves.Where(x =>
                 x.From.File == currentMove.From.File
                 && x.From.Rank == currentMove.From.Rank
                 && x.To.File == currentMove.To.File
                 && x.To.Rank == currentMove.To.Rank);
-            if (moveIndex >= 0)
+
+            if (!matchingMoves.Any())
             {
-                await MakeMoveAsync(moveIndex);
-                await InvokeAsync(StateHasChanged);
-                await Task.Delay(1);
+                currentMove = null;
+                return;
             }
 
+            if (currentMove.Piece!.Kind == PieceKind.Pawn && (currentMove.To.Rank is 0 or 7))
+            {
+                if (alwaysPromoteToQueen)
+                {
+                    currentMove.PromotionPieceKind = PieceKind.Queen;
+                }
+                else
+                {
+                    var dialog = await _dialogService.ShowDialogAsync<PromotionDialog>(
+                        PieceKind.Queen,
+                        new DialogParameters
+                        {
+                            SecondaryActionEnabled = false,
+                        });
+                    var result = await dialog.Result;
+                    currentMove.PromotionPieceKind = (result.Data as PieceKind?) ?? PieceKind.Queen;
+                }
+
+                matchingMoves = matchingMoves.Where(x => x.PromotionPieceKind == currentMove.PromotionPieceKind);
+            }
+
+            var matchingMove = matchingMoves.Single();
             currentMove = null;
+
+            MakeMove(matchingMove);
         }
     }
 
-    private async Task MakeMoveAsync(int moveIndex)
+    private void MakeMove(Move move)
     {
-        await MakeMoveAsync(validMoves[moveIndex]);
-    }
-
-    private async Task MakeMoveAsync(Move move)
-    {
-        if (move.IsPromotion)
-        {
-            if (alwaysPromoteToQueen)
-            {
-                move.PromotionPieceKind = PieceKind.Queen;
-            }
-            else
-            {
-                var dialog = await _dialogService.ShowDialogAsync<PromotionDialog>(
-                    PieceKind.Queen,
-                    new DialogParameters
-                    {
-                        SecondaryActionEnabled = false,
-                    });
-                var result = await dialog.Result;
-                move.PromotionPieceKind = (result.Data as PieceKind?) ?? PieceKind.Queen;
-            }
-        }
-
         var shortNotation = move.GetNotationVariants()
             .First(x => validMoves.Count(y => y.GetNotationVariants().Contains(x)) == 1);
         Notate(move, shortNotation);
@@ -450,8 +450,6 @@
         {
             Console.WriteLine("Thinking task started...");
             Position positionCopy = Position.FromMoves(position.Moves);
-            Console.WriteLine("Got copy");
-            //Console.WriteLine("Got valid moves count");
             progressTotal = 1;
             progressCurrent = 0;
             await InvokeAsync(StateHasChanged);
@@ -481,12 +479,6 @@
 
                 var moves = positionCopy.Moves;
                 moves.Add(computerMove);
-
-                Console.WriteLine("Valid moves:");
-                foreach (var move in validMoves)
-                {
-                    Console.WriteLine(move.GetNotationVariants().First());
-                }
 
                 var shortNotation = computerMove.GetNotationVariants()
                     .First(x => validMoves.Count(y => y.GetNotationVariants().Contains(x)) == 1);
@@ -532,7 +524,6 @@
             var positionCopy = Position.FromMoves(position.Moves);
             var sw = Stopwatch.StartNew();
             validMoves = positionCopy.GetMoves(position.ColorToMove).ToList();
-            Console.WriteLine($"Valid moves: {validMoves.Count} in {sw.ElapsedMilliseconds} ms");
             sw.Stop();
         }
         else

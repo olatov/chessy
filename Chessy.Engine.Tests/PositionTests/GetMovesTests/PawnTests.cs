@@ -416,6 +416,7 @@ public sealed class PawnTests
     {
         // Arrange
         var pawn = _sut.Board[Coords.Parse("d7")] = Piece.CreatePawn(PieceColor.White);
+        var enemyKing = _sut.Board[Coords.Parse("a8")] = Piece.CreateKing(PieceColor.Black);
 
         // Act
         var moves = _sut.GetMoves(pawn.Color);
@@ -423,8 +424,8 @@ public sealed class PawnTests
         // Assert
         moves.Should().HaveCount(4);
         var notations = moves.Select(m => m.GetNotationVariants().First());
-        notations.Should().Contain("d8=Q");
-        notations.Should().Contain("d8=R");
+        notations.Should().Contain("d8=Q+");
+        notations.Should().Contain("d8=R+");
         notations.Should().Contain("d8=B");
         notations.Should().Contain("d8=N");
     }
@@ -434,6 +435,7 @@ public sealed class PawnTests
     {
         // Arrange
         var pawn = _sut.Board[Coords.Parse("e2")] = Piece.CreatePawn(PieceColor.Black);
+        var enemyKing = _sut.Board[Coords.Parse("h1")] = Piece.CreateKing(PieceColor.White);
 
         // Act
         var moves = _sut.GetMoves(pawn.Color);
@@ -441,8 +443,8 @@ public sealed class PawnTests
         // Assert
         moves.Should().HaveCount(4);
         var notations = moves.Select(m => m.GetNotationVariants().First());
-        notations.Should().Contain("e1=Q");
-        notations.Should().Contain("e1=R");
+        notations.Should().Contain("e1=Q+");
+        notations.Should().Contain("e1=R+");
         notations.Should().Contain("e1=B");
         notations.Should().Contain("e1=N");
     }

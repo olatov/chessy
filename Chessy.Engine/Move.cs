@@ -79,8 +79,10 @@ public class Move(IPiece piece, Coords from, Coords to, PieceKind? promitionPiec
         };
     }
 
-    public IEnumerable<string> GetNotationVariants()
+    public IList<string> GetNotationVariants()
     {
+        var variants = new List<string>();
+
         var result = new StringBuilder();
 
         foreach (var variant in Enumerable.Range(1, 4))
@@ -137,8 +139,10 @@ public class Move(IPiece piece, Coords from, Coords to, PieceKind? promitionPiec
                 result.Append('+');
             }
 
-            yield return result.ToString();
+            variants.Add(result.ToString());
         }
+
+        return variants.Distinct().OrderBy(x => x.Length).ToList();
     }
 
     public override string ToString() => GetNotationVariants().Last();
