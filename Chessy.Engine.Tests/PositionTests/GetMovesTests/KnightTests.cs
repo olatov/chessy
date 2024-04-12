@@ -13,8 +13,7 @@ public sealed class KnightTests
     public void ShouldMove_WhenInCenter()
     {
         // Arrange
-        var knight = new Piece { Kind = PieceKind.Knight, Color = PieceColor.White };
-        _sut.AddPiece(knight, Coords.Parse("c4"));
+        var knight = _sut.Board["c4"] = Piece.CreateKnight(PieceColor.White);
         string[] expected = ["Na3", "Nb2", "Nb6", "Na5", "Ne3", "Nd2", "Nd6", "Ne5"];
 
         // Act
@@ -29,8 +28,7 @@ public sealed class KnightTests
     public void ShouldMove_WhenInCorner()
     {
         // Arrange
-        var knight = new Piece { Kind = PieceKind.Knight, Color = PieceColor.White };
-        _sut.AddPiece(knight, Coords.Parse("a1"));
+        var knight = _sut.Board["a1"] = Piece.CreateKnight(PieceColor.White);
         string[] expected = ["Nb3", "Nc2"];
 
         // Act
@@ -45,9 +43,8 @@ public sealed class KnightTests
     public void ShouldMove_WhenInCornerAndPartiallyBlocked()
     {
         // Arrange
-        var knight = new Piece { Kind = PieceKind.Knight, Color = PieceColor.White };
-        _sut.AddPiece(knight, Coords.Parse("a1"));
-        _sut.AddPiece(new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White }, Coords.Parse("b3"));
+        var knight = _sut.Board["a1"] = Piece.CreateKnight(PieceColor.White);
+        _sut.Board["b3"] = Piece.CreatePawn(PieceColor.White);
         string[] expected = ["Nc2"];
 
         // Act
@@ -63,10 +60,10 @@ public sealed class KnightTests
     public void ShouldMove_WhenBehindPieces()
     {
         // Arrange
-        var knight = new Piece { Kind = PieceKind.Knight, Color = PieceColor.White };
-        _sut.AddPiece(knight, Coords.Parse("h8"));
-        _sut.AddPiece(new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White }, Coords.Parse("g7"));
-        _sut.AddPiece(new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White }, Coords.Parse("h7"));
+        var knight = _sut.Board["h8"] = Piece.CreateKnight(PieceColor.White);
+        _sut.Board["g7"] = Piece.CreatePawn(PieceColor.White);
+        _sut.Board["h7"] = Piece.CreatePawn(PieceColor.White);
+        _sut.Board["g8"] = Piece.CreateKing(PieceColor.White);
         string[] expected = ["Nf7", "Ng6"];
 
         // Act
@@ -82,10 +79,9 @@ public sealed class KnightTests
     public void ShouldNotMove_WhenBlocked()
     {
         // Arrange
-        var knight = new Piece { Kind = PieceKind.Knight, Color = PieceColor.White };
-        _sut.AddPiece(knight, Coords.Parse("a1"));
-        _sut.AddPiece(new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White }, Coords.Parse("b3"));
-        _sut.AddPiece(new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White }, Coords.Parse("c2"));
+        var knight = _sut.Board["a1"] = Piece.CreateKnight(PieceColor.White);
+        _sut.Board["b3"] = Piece.CreatePawn(PieceColor.White);
+        _sut.Board["c2"] = Piece.CreatePawn(PieceColor.White);
 
         // Act
         var moves = _sut.GetMoves(knight.Color);
@@ -100,10 +96,8 @@ public sealed class KnightTests
     public void ShouldCapture_WhenEnemyPieceIsInDestination()
     {
         // Arrange
-        var knight = new Piece { Kind = PieceKind.Knight, Color = PieceColor.White };
-        _sut.AddPiece(knight, Coords.Parse("c4"));
-        var enemyPawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black };
-        _sut.AddPiece(enemyPawn, Coords.Parse("b6"));
+        var knight = _sut.Board["c4"] = Piece.CreateKnight(PieceColor.White);
+        var enemyPawn = _sut.Board["b6"] = Piece.CreatePawn(PieceColor.Black);
 
         // Act
         var moves = _sut.GetMoves(knight.Color);
@@ -118,10 +112,8 @@ public sealed class KnightTests
     public void ShouldGiveCheck_WhenAttackingEnemyKing()
     {
         // Arrange
-        var knight = new Piece { Kind = PieceKind.Knight, Color = PieceColor.White };
-        _sut.AddPiece(knight, Coords.Parse("b5"));
-        var enemyKing = new Piece { Kind = PieceKind.King, Color = PieceColor.Black };
-        _sut.AddPiece(enemyKing, Coords.Parse("e8"));
+        var knight = _sut.Board["b5"] = Piece.CreateKnight(PieceColor.White);
+        var enemyKing = _sut.Board["e8"] = Piece.CreateKing(PieceColor.Black);
 
         // Act
         var moves = _sut.GetMoves(knight.Color);
@@ -137,10 +129,9 @@ public sealed class KnightTests
     public void ShouldNotMove_WhenWouldPutOwnKingInCheck()
     {
         // Arrange
-        var knight = new Piece { Kind = PieceKind.Knight, Color = PieceColor.White };
-        _sut.AddPiece(knight, Coords.Parse("e4"));
-        _sut.AddPiece(new Piece { Kind = PieceKind.King, Color = PieceColor.White }, Coords.Parse("e1"));
-        _sut.AddPiece(new Piece { Kind = PieceKind.Rook, Color = PieceColor.Black }, Coords.Parse("e8"));
+        var knight = _sut.Board["e4"] = Piece.CreateKnight(PieceColor.White);
+        _sut.Board["e1"] = Piece.CreateKing(PieceColor.White);
+        _sut.Board["e8"] = Piece.CreateRook(PieceColor.Black);
 
         // Act
         var moves = _sut.GetMoves(knight.Color);

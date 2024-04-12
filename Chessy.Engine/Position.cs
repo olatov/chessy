@@ -55,32 +55,32 @@ public class Position
 
         foreach (int File in new[] { 0, 7 })
         {
-            Board.Squares[File, 0] = new Piece { Color = PieceColor.White, Kind = PieceKind.Rook };
-            Board.Squares[File, 7] = new Piece { Color = PieceColor.Black, Kind = PieceKind.Rook };
+            Board.Squares[File, 0] = Piece.CreateRook(PieceColor.White);
+            Board.Squares[File, 7] = Piece.CreateRook(PieceColor.Black);
         }
 
         foreach (int File in new[] { 1, 6 })
         {
-            Board.Squares[File, 0] = new Piece { Color = PieceColor.White, Kind = PieceKind.Knight };
-            Board.Squares[File, 7] = new Piece { Color = PieceColor.Black, Kind = PieceKind.Knight };
+            Board.Squares[File, 0] = Piece.CreateKnight(PieceColor.White);
+            Board.Squares[File, 7] = Piece.CreateKnight(PieceColor.Black);
         }
 
         foreach (int File in new[] { 2, 5 })
         {
-            Board.Squares[File, 0] = new Piece { Color = PieceColor.White, Kind = PieceKind.Bishop };
-            Board.Squares[File, 7] = new Piece { Color = PieceColor.Black, Kind = PieceKind.Bishop };
+            Board.Squares[File, 0] = Piece.CreateBishop(PieceColor.White);
+            Board.Squares[File, 7] = Piece.CreateBishop(PieceColor.Black);
         }
 
-        Board.Squares[3, 0] = new Piece { Color = PieceColor.White, Kind = PieceKind.Queen };
-        Board.Squares[3, 7] = new Piece { Color = PieceColor.Black, Kind = PieceKind.Queen };
+        Board.Squares[3, 0] = Piece.CreateQueen(PieceColor.White);
+        Board.Squares[3, 7] = Piece.CreateQueen(PieceColor.Black);
 
-        Board.Squares[4, 0] = new Piece { Color = PieceColor.White, Kind = PieceKind.King };
-        Board.Squares[4, 7] = new Piece { Color = PieceColor.Black, Kind = PieceKind.King };
+        Board.Squares[4, 0] = Piece.CreateKing(PieceColor.White);
+        Board.Squares[4, 7] = Piece.CreateKing(PieceColor.Black);
 
         foreach (int File in Enumerable.Range(0, 8))
         {
-            Board.Squares[File, 1] = new Piece { Color = PieceColor.White, Kind = PieceKind.Pawn };
-            Board.Squares[File, 6] = new Piece { Color = PieceColor.Black, Kind = PieceKind.Pawn };
+            Board.Squares[File, 1] = Piece.CreatePawn(PieceColor.White);
+            Board.Squares[File, 6] = Piece.CreatePawn(PieceColor.Black);
         }
 
         ColorToMove = PieceColor.White;
@@ -94,16 +94,6 @@ public class Position
         Moves = new List<Move>();
         ColorToMove = PieceColor.White;
         CastlingRights = new();
-    }
-
-    public void AddPiece(IPiece piece, Coords position)
-    {
-        if (Board.Squares[position.File, position.Rank] is not null)
-        {
-            throw new InvalidOperationException("Square is not empty");
-        }
-
-        Board.Squares[position.File, position.Rank] = piece;
     }
 
     public void MakeMove(Move move)

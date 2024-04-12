@@ -13,8 +13,8 @@ public sealed class RookTests
     public void ShouldMove_WhenInCenter()
     {
         // Arrange
-        var rook = new Piece { Kind = PieceKind.Rook, Color = PieceColor.White };
-        _sut.AddPiece(rook, Coords.Parse("d4"));
+        var rook = Piece.CreateRook(PieceColor.White);
+        _sut.Board["d4"] = rook;
         string[] expected = [
             "Rd1", "Rd2", "Rd3", "Rd5", "Rd6", "Rd7", "Rd8",
             "Ra4", "Rb4", "Rc4", "Re4", "Rf4", "Rg4", "Rh4"
@@ -32,8 +32,8 @@ public sealed class RookTests
     public void ShouldMove_WhenInCorner()
     {
         // Arrange
-        var rook = new Piece { Kind = PieceKind.Rook, Color = PieceColor.White };
-        _sut.AddPiece(rook, Coords.Parse("a1"));
+        var rook = Piece.CreateRook(PieceColor.White);
+        _sut.Board["a1"] = rook;
         string[] expected = [
             "Ra2", "Ra3", "Ra4", "Ra5", "Ra6", "Ra7", "Ra8",
             "Rb1", "Rc1", "Rd1", "Re1", "Rf1", "Rg1", "Rh1"
@@ -51,9 +51,9 @@ public sealed class RookTests
     public void ShouldMove_WhenInCornerAndPartiallyBlocked()
     {
         // Arrange
-        var rook = new Piece { Kind = PieceKind.Rook, Color = PieceColor.White };
-        _sut.AddPiece(rook, Coords.Parse("a1"));
-        _sut.AddPiece(new Piece { Kind = PieceKind.Bishop, Color = PieceColor.White }, Coords.Parse("e1"));
+        var rook = Piece.CreateRook(PieceColor.White);
+        _sut.Board["a1"] = rook;
+        _sut.Board["e1"] = Piece.CreateBishop(PieceColor.White);
         string[] expected = [
             "Ra2", "Ra3", "Ra4", "Ra5", "Ra6", "Ra7", "Ra8",
             "Rb1", "Rc1", "Rd1"
@@ -72,12 +72,12 @@ public sealed class RookTests
     public void ShouldNotMove_WhenBlocked()
     {
         // Arrange
-        var rook = new Piece { Kind = PieceKind.Rook, Color = PieceColor.White };
-        _sut.AddPiece(rook, Coords.Parse("d4"));
-        _sut.AddPiece(new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White }, Coords.Parse("d5"));
-        _sut.AddPiece(new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White }, Coords.Parse("d3"));
-        _sut.AddPiece(new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White }, Coords.Parse("e4"));
-        _sut.AddPiece(new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White }, Coords.Parse("c4"));
+        var rook = Piece.CreateRook(PieceColor.White);
+        _sut.Board["d4"] = rook;
+        _sut.Board["d5"] = Piece.CreatePawn(PieceColor.White);
+        _sut.Board["d3"] = Piece.CreatePawn(PieceColor.White);
+        _sut.Board["e4"] = Piece.CreatePawn(PieceColor.White);
+        _sut.Board["c4"] = Piece.CreatePawn(PieceColor.White);
 
         // Act
         var moves = _sut.GetMoves(rook.Color);
@@ -90,12 +90,12 @@ public sealed class RookTests
     public void ShouldMove_WhenCanCapture()
     {
         // Arrange
-        var rook = new Piece { Kind = PieceKind.Rook, Color = PieceColor.White };
-        _sut.AddPiece(rook, Coords.Parse("d4"));
-        _sut.AddPiece(new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black }, Coords.Parse("d6"));
-        _sut.AddPiece(new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black }, Coords.Parse("d2"));
-        _sut.AddPiece(new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black }, Coords.Parse("a4"));
-        _sut.AddPiece(new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black }, Coords.Parse("f4"));
+        var rook = Piece.CreateRook(PieceColor.White);
+        _sut.Board["d4"] = rook;
+        _sut.Board["d6"] = Piece.CreatePawn(PieceColor.Black);
+        _sut.Board["d2"] = Piece.CreatePawn(PieceColor.Black);
+        _sut.Board["a4"] = Piece.CreatePawn(PieceColor.Black);
+        _sut.Board["f4"] = Piece.CreatePawn(PieceColor.Black);
         string[] expected = [
             "Rxa4", "Rxd2", "Rd3", "Rd5", "Rxd6",
             "Rb4", "Rc4", "Re4", "Rxf4"
@@ -113,9 +113,9 @@ public sealed class RookTests
     public void ShouldGiveCheck_WhenAttackingEnemyKing()
     {
         // Arrange
-        var rook = new Piece { Kind = PieceKind.Rook, Color = PieceColor.White };
-        _sut.AddPiece(rook, Coords.Parse("f4"));
-        _sut.AddPiece(new Piece { Kind = PieceKind.King, Color = PieceColor.Black }, Coords.Parse("d8"));
+        var rook = Piece.CreateRook(PieceColor.White);
+        _sut.Board["f4"] = rook;
+        _sut.Board["d8"] = Piece.CreateKing(PieceColor.Black);
 
         // Act
         var moves = _sut.GetMoves(rook.Color);
@@ -132,10 +132,10 @@ public sealed class RookTests
     public void ShouldNotMove_WhenWouldPutOwnKingInCheck()
     {
         // Arrange
-        var rook = new Piece { Kind = PieceKind.Rook, Color = PieceColor.White };
-        _sut.AddPiece(rook, Coords.Parse("d2"));
-        _sut.AddPiece(new Piece { Kind = PieceKind.King, Color = PieceColor.White }, Coords.Parse("e1"));
-        _sut.AddPiece(new Piece { Kind = PieceKind.Queen, Color = PieceColor.Black }, Coords.Parse("a5"));
+        var rook = Piece.CreateRook(PieceColor.White);
+        _sut.Board["d2"] = rook;
+        _sut.Board["e1"] = Piece.CreateKing(PieceColor.White);
+        _sut.Board["a5"] = Piece.CreateQueen(PieceColor.Black);
 
         // Act
         var moves = _sut.GetMoves(rook.Color);
@@ -148,15 +148,12 @@ public sealed class RookTests
     public void CastlingShortRightRetains_WhenRookNotMoved_AndWhite()
     {
         // Arrange
-        var rook = new Piece { Kind = PieceKind.Rook, Color = PieceColor.White };
-        _sut.AddPiece(rook, Coords.Parse("h1"));
-        var king = new Piece { Kind = PieceKind.King, Color = PieceColor.White };
-        _sut.AddPiece(king, Coords.Parse("e1"));
-        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White };
-        _sut.AddPiece(pawn, Coords.Parse("f2"));
+        var rook = _sut.Board["h1"] = Piece.CreateRook(PieceColor.White);
+        var king = _sut.Board["e1"] = Piece.CreateKing(PieceColor.White);
+        var pawn = _sut.Board["f2"] = Piece.CreatePawn(PieceColor.White);
 
         // Act
-        _sut.MakeMove(new Move(pawn, Coords.Parse("f2"), Coords.Parse("f2")));
+        _sut.MakeMove(Move.For(pawn, "f2", "f3"));
         var moves = _sut.GetMoves(king.Color);
 
         // Assert
@@ -168,15 +165,13 @@ public sealed class RookTests
     public void CastlingShortRightRetains_WhenRookNotMoved_AndBlack()
     {
         // Arrange
-        var rook = new Piece { Kind = PieceKind.Rook, Color = PieceColor.Black };
-        _sut.AddPiece(rook, Coords.Parse("h8"));
-        var king = new Piece { Kind = PieceKind.King, Color = PieceColor.Black };
-        _sut.AddPiece(king, Coords.Parse("e8"));
-        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black };
-        _sut.AddPiece(pawn, Coords.Parse("f7"));
+
+        var rook = _sut.Board["h8"] = Piece.CreateRook(PieceColor.Black);
+        var king = _sut.Board["e8"] = Piece.CreateKing(PieceColor.Black);
+        var pawn = _sut.Board["f7"] = Piece.CreatePawn(PieceColor.Black);
 
         // Act
-        _sut.MakeMove(new Move(pawn, Coords.Parse("f7"), Coords.Parse("f6")));
+        _sut.MakeMove(Move.For(pawn, "f7", "f6"));
         var moves = _sut.GetMoves(king.Color);
 
         // Assert
@@ -188,15 +183,12 @@ public sealed class RookTests
     public void CastlingShortRightLost_WhenRookMoved_AndWhite()
     {
         // Arrange
-        var rook = new Piece { Kind = PieceKind.Rook, Color = PieceColor.White };
-        _sut.AddPiece(rook, Coords.Parse("h1"));
-        var king = new Piece { Kind = PieceKind.King, Color = PieceColor.White };
-        _sut.AddPiece(king, Coords.Parse("e1"));
-        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White };
-        _sut.AddPiece(pawn, Coords.Parse("f2"));
+        var rook = _sut.Board["h1"] = Piece.CreateRook(PieceColor.White);
+        var king = _sut.Board["e1"] = Piece.CreateKing(PieceColor.White);
+        var pawn = _sut.Board["f2"] = Piece.CreatePawn(PieceColor.White);
 
         // Act
-        _sut.MakeMove(new Move(rook, Coords.Parse("h1"), Coords.Parse("h2")));
+        _sut.MakeMove(Move.For(rook, "h1", "h2"));
         var moves = _sut.GetMoves(king.Color);
 
         // Assert
@@ -208,15 +200,12 @@ public sealed class RookTests
     public void CastlingShortRightLost_WhenRookMoved_AndBlack()
     {
         // Arrange
-        var rook = new Piece { Kind = PieceKind.Rook, Color = PieceColor.Black };
-        _sut.AddPiece(rook, Coords.Parse("h8"));
-        var king = new Piece { Kind = PieceKind.King, Color = PieceColor.Black };
-        _sut.AddPiece(king, Coords.Parse("e8"));
-        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black };
-        _sut.AddPiece(pawn, Coords.Parse("f7"));
+        var rook = _sut.Board["h8"] = Piece.CreateRook(PieceColor.Black);
+        var king = _sut.Board["e8"] = Piece.CreateKing(PieceColor.Black);
+        var pawn = _sut.Board["f7"] = Piece.CreatePawn(PieceColor.Black);
 
         // Act
-        _sut.MakeMove(new Move(rook, Coords.Parse("h8"), Coords.Parse("h7")));
+        _sut.MakeMove(Move.For(rook, "h8", "h7"));
         var moves = _sut.GetMoves(king.Color);
 
         // Assert
@@ -228,12 +217,9 @@ public sealed class RookTests
     public void CastlingStateLongRightRetains_WhenRookNotMoved_AndWhite()
     {
         // Arrange
-        var rook = new Piece { Kind = PieceKind.Rook, Color = PieceColor.White };
-        _sut.AddPiece(rook, Coords.Parse("a1"));
-        var king = new Piece { Kind = PieceKind.King, Color = PieceColor.White };
-        _sut.AddPiece(king, Coords.Parse("e1"));
-        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White };
-        _sut.AddPiece(pawn, Coords.Parse("b2"));
+        var rook = _sut.Board["a1"] = Piece.CreateRook(PieceColor.White);
+        var king = _sut.Board["e1"] = Piece.CreateKing(PieceColor.White);
+        var pawn = _sut.Board["b2"] = Piece.CreatePawn(PieceColor.White);
 
         // Act
         _sut.MakeMove(new Move(pawn, Coords.Parse("b2"), Coords.Parse("b3")));
@@ -248,15 +234,12 @@ public sealed class RookTests
     public void CastlingLongRightRetains_WhenRookNotMoved_AndBlack()
     {
         // Arrange
-        var rook = new Piece { Kind = PieceKind.Rook, Color = PieceColor.Black };
-        _sut.AddPiece(rook, Coords.Parse("a8"));
-        var king = new Piece { Kind = PieceKind.King, Color = PieceColor.Black };
-        _sut.AddPiece(king, Coords.Parse("e8"));
-        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black };
-        _sut.AddPiece(pawn, Coords.Parse("b7"));
+        var rook = _sut.Board["a8"] = Piece.CreateRook(PieceColor.Black);
+        var king = _sut.Board["e8"] = Piece.CreateKing(PieceColor.Black);
+        var pawn = _sut.Board["b7"] = Piece.CreatePawn(PieceColor.Black);
 
         // Act
-        _sut.MakeMove(new Move(pawn, Coords.Parse("b7"), Coords.Parse("b6")));
+        _sut.MakeMove(Move.For(pawn, "b7", "b6"));
         var moves = _sut.GetMoves(king.Color);
 
         // Assert
@@ -268,15 +251,12 @@ public sealed class RookTests
     public void CastlingLongRightLost_WhenRookMoved_AndWhite()
     {
         // Arrange
-        var rook = new Piece { Kind = PieceKind.Rook, Color = PieceColor.White };
-        _sut.AddPiece(rook, Coords.Parse("a1"));
-        var king = new Piece { Kind = PieceKind.King, Color = PieceColor.White };
-        _sut.AddPiece(king, Coords.Parse("e1"));
-        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White };
-        _sut.AddPiece(pawn, Coords.Parse("b2"));
+        var rook = _sut.Board["a1"] = Piece.CreateRook(PieceColor.White);
+        var king = _sut.Board["e1"] = Piece.CreateKing(PieceColor.White);
+        var pawn = _sut.Board["b2"] = Piece.CreatePawn(PieceColor.White);
 
         // Act
-        _sut.MakeMove(new Move(rook, Coords.Parse("a1"), Coords.Parse("a2")));
+        _sut.MakeMove(Move.For(rook, "a1", "a2"));
         var moves = _sut.GetMoves(king.Color);
 
         // Assert
@@ -288,15 +268,12 @@ public sealed class RookTests
     public void CastlingLongRightLost_WhenRookMoved_AndBlack()
     {
         // Arrange
-        var rook = new Piece { Kind = PieceKind.Rook, Color = PieceColor.Black };
-        _sut.AddPiece(rook, Coords.Parse("a8"));
-        var king = new Piece { Kind = PieceKind.King, Color = PieceColor.Black };
-        _sut.AddPiece(king, Coords.Parse("e8"));
-        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black };
-        _sut.AddPiece(pawn, Coords.Parse("b7"));
+        var rook = _sut.Board["a8"] = Piece.CreateRook(PieceColor.Black);
+        var king = _sut.Board["e8"] = Piece.CreateKing(PieceColor.Black);
+        var pawn = _sut.Board["b7"] = Piece.CreatePawn(PieceColor.Black);
 
         // Act
-        _sut.MakeMove(new Move(rook, Coords.Parse("a8"), Coords.Parse("a7")));
+        _sut.MakeMove(Move.For(rook, "a8", "a7"));
         var moves = _sut.GetMoves(king.Color);
 
         // Assert

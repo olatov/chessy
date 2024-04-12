@@ -13,8 +13,7 @@ public sealed class PawnTests
     public void ShouldMoveOneOrTwoSquaresForward_WhenWhite_AndOnSecondRank()
     {
         // Arrange
-        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White };
-        _sut.AddPiece(pawn, Coords.Parse("d2"));
+        var pawn = _sut.Board["d2"] = Piece.CreatePawn(PieceColor.White);
 
         // Act
         var moves = _sut.GetMoves(pawn.Color);
@@ -30,8 +29,8 @@ public sealed class PawnTests
     public void ShouldMoveOneOrTwoSquaresForward_WhenBlack_AndOnSeventhRank()
     {
         // Arrange
-        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black };
-        _sut.AddPiece(pawn, Coords.Parse("e7"));
+        var pawn = Piece.CreatePawn(PieceColor.Black);
+        _sut.Board[Coords.Parse("e7")] = pawn;
 
         // Act
         var moves = _sut.GetMoves(pawn.Color);
@@ -47,8 +46,8 @@ public sealed class PawnTests
     public void ShouldMoveOneSquareForward_WhenWhite_AndNotOnSecondRank()
     {
         // Arrange
-        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White };
-        _sut.AddPiece(pawn, Coords.Parse("d3"));
+        var pawn = Piece.CreatePawn(PieceColor.White);
+        _sut.Board[Coords.Parse("d3")] = pawn;
 
         // Act
         var moves = _sut.GetMoves(pawn.Color);
@@ -63,8 +62,8 @@ public sealed class PawnTests
     public void ShouldMoveOneSquareForward_WhenBlack_AndNotOnSeventhRank()
     {
         // Arrange
-        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black };
-        _sut.AddPiece(pawn, Coords.Parse("e6"));
+        var pawn = Piece.CreatePawn(PieceColor.Black);
+        _sut.Board[Coords.Parse("e6")] = pawn;
 
         // Act
         var moves = _sut.GetMoves(pawn.Color);
@@ -79,11 +78,9 @@ public sealed class PawnTests
     public void ShouldNotMove_WhenWhite_AndBlockedByOwnPiece()
     {
         // Arrange
-        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White };
-        _sut.AddPiece(pawn, Coords.Parse("d2"));
-        _sut.AddPiece(
-            new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White },
-            Coords.Parse("d3"));
+        var pawn = Piece.CreatePawn(PieceColor.White);
+        _sut.Board[Coords.Parse("d2")] = pawn;
+        _sut.Board[Coords.Parse("d3")] = Piece.CreatePawn(PieceColor.White);
 
         // Act
         var moves = _sut.GetMoves(pawn.Color);
@@ -96,11 +93,9 @@ public sealed class PawnTests
     public void ShouldNotMove_WhenBlack_AndBlockedByOwnPiece()
     {
         // Arrange
-        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black };
-        _sut.AddPiece(pawn, Coords.Parse("e7"));
-        _sut.AddPiece(
-            new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black },
-            Coords.Parse("e6"));
+        var pawn = Piece.CreatePawn(PieceColor.Black);
+        _sut.Board[Coords.Parse("e7")] = pawn;
+        _sut.Board[Coords.Parse("e6")] = Piece.CreatePawn(PieceColor.Black);
 
         // Act
         var moves = _sut.GetMoves(pawn.Color);
@@ -113,11 +108,8 @@ public sealed class PawnTests
     public void ShouldNotMoveForward_WhenWhite_AndBlockedByEnemyPiece()
     {
         // Arrange
-        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White };
-        _sut.AddPiece(pawn, Coords.Parse("d2"));
-        _sut.AddPiece(
-            new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black },
-            Coords.Parse("d3"));
+        var pawn = _sut.Board["d2"] = Piece.CreatePawn(PieceColor.White);
+        _sut.Board["d3"] = Piece.CreatePawn(PieceColor.Black);
 
         // Act
         var moves = _sut.GetMoves(pawn.Color);
@@ -130,11 +122,9 @@ public sealed class PawnTests
     public void ShouldNotMoveForward_WhenBlack_AndBlockedByEnemyPiece()
     {
         // Arrange
-        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black };
-        _sut.AddPiece(pawn, Coords.Parse("e7"));
-        _sut.AddPiece(
-            new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White },
-            Coords.Parse("e6"));
+        var pawn = Piece.CreatePawn(PieceColor.Black);
+        _sut.Board[Coords.Parse("e7")] = pawn;
+        _sut.Board[Coords.Parse("e6")] = Piece.CreatePawn(PieceColor.White);
 
         // Act
         var moves = _sut.GetMoves(pawn.Color);
@@ -147,14 +137,10 @@ public sealed class PawnTests
     public void ShouldCaptureDiagonally_WhenWhite()
     {
         // Arrange
-        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White };
-        _sut.AddPiece(pawn, Coords.Parse("d5"));
-        _sut.AddPiece(
-            new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black },
-            Coords.Parse("c6"));
-        _sut.AddPiece(
-            new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black },
-            Coords.Parse("e6"));
+        var pawn = Piece.CreatePawn(PieceColor.White);
+        _sut.Board[Coords.Parse("d5")] = pawn;
+        _sut.Board[Coords.Parse("c6")] = Piece.CreatePawn(PieceColor.Black);
+        _sut.Board[Coords.Parse("e6")] = Piece.CreatePawn(PieceColor.Black);
 
         // Act
         var moves = _sut.GetMoves(pawn.Color);
@@ -172,14 +158,10 @@ public sealed class PawnTests
     public void ShouldCaptureDiagonally_WhenBlack()
     {
         // Arrange
-        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black };
-        _sut.AddPiece(pawn, Coords.Parse("e4"));
-        _sut.AddPiece(
-            new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White },
-            Coords.Parse("d3"));
-        _sut.AddPiece(
-            new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White },
-            Coords.Parse("f3"));
+        var pawn = Piece.CreatePawn(PieceColor.Black);
+        _sut.Board[Coords.Parse("e4")] = pawn;
+        _sut.Board[Coords.Parse("d3")] = Piece.CreatePawn(PieceColor.White);
+        _sut.Board[Coords.Parse("f3")] = Piece.CreatePawn(PieceColor.White);
 
         // Act
         var moves = _sut.GetMoves(pawn.Color);
@@ -197,10 +179,10 @@ public sealed class PawnTests
     public void ShouldNotCaptureOwnPiece_WhenWhite()
     {
         // Arrange
-        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White };
-        var otherPawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White };
-        _sut.AddPiece(pawn, Coords.Parse("d5"));
-        _sut.AddPiece(otherPawn, Coords.Parse("c6"));
+        var pawn = Piece.CreatePawn(PieceColor.White);
+        var otherPawn = Piece.CreatePawn(PieceColor.White);
+        _sut.Board[Coords.Parse("d5")] = pawn;
+        _sut.Board[Coords.Parse("c6")] = otherPawn;
 
         // Act
         var moves = _sut.GetMoves(pawn.Color);
@@ -213,10 +195,10 @@ public sealed class PawnTests
     public void ShouldNotCaptureOwnPiece_WhenBlack()
     {
         // Arrange
-        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black };
-        var otherPawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black };
-        _sut.AddPiece(pawn, Coords.Parse("e4"));
-        _sut.AddPiece(otherPawn, Coords.Parse("d3"));
+        var pawn = Piece.CreatePawn(PieceColor.Black);
+        var otherPawn = Piece.CreatePawn(PieceColor.Black);
+        _sut.Board[Coords.Parse("e4")] = pawn;
+        _sut.Board[Coords.Parse("d3")] = otherPawn;
 
         // Act
         var moves = _sut.GetMoves(pawn.Color);
@@ -229,10 +211,8 @@ public sealed class PawnTests
     public void ShouldGiveCheck_WhenAttackingEnemyKing()
     {
         // Arrange
-        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White };
-        _sut.AddPiece(pawn, Coords.Parse("d6"));
-        var enemyKing = new Piece { Kind = PieceKind.King, Color = PieceColor.Black };
-        _sut.AddPiece(enemyKing, Coords.Parse("e8"));
+        var pawn = _sut.Board[Coords.Parse("d6")] = Piece.CreatePawn(PieceColor.White);
+        var enemyKing = _sut.Board[Coords.Parse("e8")] = Piece.CreateKing(PieceColor.Black);
 
         // Act
         var moves = _sut.GetMoves(pawn.Color);
@@ -248,10 +228,10 @@ public sealed class PawnTests
     public void ShouldNotMove_WhenWouldPutOwnKingInCheck()
     {
         // Arrange
-        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White };
-        _sut.AddPiece(pawn, Coords.Parse("e4"));
-        _sut.AddPiece(new Piece { Kind = PieceKind.King, Color = PieceColor.White }, Coords.Parse("b4"));
-        _sut.AddPiece(new Piece { Kind = PieceKind.Rook, Color = PieceColor.Black }, Coords.Parse("h4"));
+        var pawn = Piece.CreatePawn(PieceColor.White);
+        _sut.Board[Coords.Parse("e4")] = pawn;
+        _sut.Board[Coords.Parse("b4")] = Piece.CreateKing(PieceColor.White);
+        _sut.Board[Coords.Parse("h4")] = Piece.CreateRook(PieceColor.Black);
 
         // Act
         var moves = _sut.GetMoves(pawn.Color);
@@ -264,8 +244,8 @@ public sealed class PawnTests
     public void EnPassantTargetIsSet_WhenDoubleMove_AndWhite()
     {
         // Arrange
-        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White };
-        _sut.AddPiece(pawn, Coords.Parse("d2"));
+        var pawn = Piece.CreatePawn(PieceColor.White);
+        _sut.Board[Coords.Parse("d2")] = pawn;
 
         // Act
         var moves = _sut.GetMoves(pawn.Color);
@@ -279,8 +259,8 @@ public sealed class PawnTests
     public void EnPassantTargetIsSet_WhenDoubleMove_AndBlack()
     {
         // Arrange
-        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black };
-        _sut.AddPiece(pawn, Coords.Parse("e7"));
+        var pawn = Piece.CreatePawn(PieceColor.Black);
+        _sut.Board[Coords.Parse("e7")] = pawn;
 
         // Act
         var moves = _sut.GetMoves(pawn.Color);
@@ -296,8 +276,8 @@ public sealed class PawnTests
     public void EnPassantTargetIsNotSet_WhenNotDoubleMove_AndWhite()
     {
         // Arrange
-        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White };
-        _sut.AddPiece(pawn, Coords.Parse("d2"));
+        var pawn = Piece.CreatePawn(PieceColor.White);
+        _sut.Board[Coords.Parse("d2")] = pawn;
 
         // Act
         var moves = _sut.GetMoves(pawn.Color);
@@ -311,8 +291,8 @@ public sealed class PawnTests
     public void EnPassantTargetIsNotSet_WhenNotDoubleMove_AndBlack()
     {
         // Arrange
-        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black };
-        _sut.AddPiece(pawn, Coords.Parse("e7"));
+        var pawn = Piece.CreatePawn(PieceColor.Black);
+        _sut.Board[Coords.Parse("e7")] = pawn;
 
         // Act
         var moves = _sut.GetMoves(pawn.Color);
@@ -325,8 +305,8 @@ public sealed class PawnTests
     [Fact] void EnPassantTargetIsSavedOnPosition_WhenDoubleMove_AndWhite()
     {
         // Arrange
-        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White };
-        _sut.AddPiece(pawn, Coords.Parse("d2"));
+        var pawn = Piece.CreatePawn(PieceColor.White);
+        _sut.Board[Coords.Parse("d2")] = pawn;
 
         // Act
         var moves = _sut.GetMoves(pawn.Color);
@@ -340,8 +320,8 @@ public sealed class PawnTests
     void EnPassantTargetIsSavedOnPosition_WhenDoubleMove_AndBlack()
     {
         // Arrange
-        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black };
-        _sut.AddPiece(pawn, Coords.Parse("e7"));
+        var pawn = Piece.CreatePawn(PieceColor.Black);
+        _sut.Board[Coords.Parse("e7")] = pawn;
 
         // Act
         var moves = _sut.GetMoves(pawn.Color);
@@ -355,10 +335,10 @@ public sealed class PawnTests
     void EnPassantIsResetAfterMove_WhenWhite()
     {
         // Arrange
-        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White };
-        var enemyPawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black };
-        _sut.AddPiece(pawn, Coords.Parse("d2"));
-        _sut.AddPiece(enemyPawn, Coords.Parse("e6"));
+        var pawn = Piece.CreatePawn(PieceColor.White);
+        var enemyPawn = Piece.CreatePawn(PieceColor.Black);
+        _sut.Board[Coords.Parse("d2")] = pawn;
+        _sut.Board[Coords.Parse("e6")] = enemyPawn;
 
         // Act
         _sut.MakeMove(new Move(pawn, Coords.Parse("d2"), Coords.Parse("d4")));
@@ -373,10 +353,8 @@ public sealed class PawnTests
     void EnPassantIsResetAfterMove_WhenBlack()
     {
         // Arrange
-        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black };
-        var enemyPawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White };
-        _sut.AddPiece(pawn, Coords.Parse("e7"));
-        _sut.AddPiece(enemyPawn, Coords.Parse("d3"));
+        var pawn = _sut.Board[Coords.Parse("e7")] = Piece.CreatePawn(PieceColor.Black);
+        var enemyPawn = _sut.Board[Coords.Parse("d3")] = Piece.CreatePawn(PieceColor.White);
 
         // Act
         _sut.MakeMove(new Move(pawn, Coords.Parse("e7"), Coords.Parse("e5")));
@@ -391,11 +369,8 @@ public sealed class PawnTests
     public void ShouldCaptureEnPassant_WhenWhite()
     {
         // Arrange
-        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White };
-        var enemyPawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black };
-
-        _sut.AddPiece(pawn, Coords.Parse("d5"));
-        _sut.AddPiece(enemyPawn, Coords.Parse("c7"));
+        var pawn = _sut.Board[Coords.Parse("d5")] = Piece.CreatePawn(PieceColor.White);
+        var enemyPawn = _sut.Board[Coords.Parse("c7")] = Piece.CreatePawn(PieceColor.Black);
 
         // Act
         _sut.MakeMove(new Move(enemyPawn, Coords.Parse("c7"), Coords.Parse("c5")));
@@ -417,11 +392,8 @@ public sealed class PawnTests
     public void ShouldCaptureEnPassant_WhenBlack()
     {
         // Arrange
-        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black };
-        var enemyPawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White };
-
-        _sut.AddPiece(pawn, Coords.Parse("e4"));
-        _sut.AddPiece(enemyPawn, Coords.Parse("d2"));
+        var pawn = _sut.Board[Coords.Parse("e4")] = Piece.CreatePawn(PieceColor.Black);
+        var enemyPawn = _sut.Board[Coords.Parse("d2")] = Piece.CreatePawn(PieceColor.White);
 
         // Act
         _sut.MakeMove(new Move(enemyPawn, Coords.Parse("d2"), Coords.Parse("d4")));
@@ -443,8 +415,7 @@ public sealed class PawnTests
     public void ShouldPromote_WhenWhite_AndOnEighthRank()
     {
         // Arrange
-        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.White };
-        _sut.AddPiece(pawn, Coords.Parse("d7"));
+        var pawn = _sut.Board[Coords.Parse("d7")] = Piece.CreatePawn(PieceColor.White);
 
         // Act
         var moves = _sut.GetMoves(pawn.Color);
@@ -462,8 +433,7 @@ public sealed class PawnTests
     public void ShouldPromote_WhenBlack_AndOnFirstRank()
     {
         // Arrange
-        var pawn = new Piece { Kind = PieceKind.Pawn, Color = PieceColor.Black };
-        _sut.AddPiece(pawn, Coords.Parse("e2"));
+        var pawn = _sut.Board[Coords.Parse("e2")] = Piece.CreatePawn(PieceColor.Black);
 
         // Act
         var moves = _sut.GetMoves(pawn.Color);

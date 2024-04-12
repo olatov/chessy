@@ -7,6 +7,18 @@ public record Board
 {
     public IPiece?[,] Squares { get; set; } = new IPiece?[8, 8];
 
+    public IPiece? this[string coords]
+    {
+        get => this[Coords.Parse(coords)];
+        set => this[Coords.Parse(coords)] = value;
+    }
+
+    public IPiece? this[Coords coords]
+    {
+        get => Squares[coords.File, coords.Rank];
+        set => Squares[coords.File, coords.Rank] = value;
+    }
+
     public IEnumerable<Coords> GetPiecesCoords(PieceColor color)
     {
         foreach (var file in Enumerable.Range(0, 8))

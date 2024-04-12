@@ -29,6 +29,11 @@ public class Move(IPiece piece, Coords from, Coords to)
         new Coords(To.File, Piece.Color == PieceColor.White ? 2 : 5)
         : null;
 
+    public static Move For(IPiece piece, Coords from, Coords to) => new(piece, from, to);
+
+    public static Move For(IPiece piece, string from, string to) =>
+        new(piece, Coords.Parse(from), Coords.Parse(to));
+
     public bool IsPawnDoubleMove => Piece?.Kind == PieceKind.Pawn && Math.Abs(From.Rank - To.Rank) == 2;
 
     public bool IsCastlingShort

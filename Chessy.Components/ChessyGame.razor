@@ -472,14 +472,21 @@
 
             if (computerMove is not null)
             {
+                Console.WriteLine("Computer move found: " + computerMove.GetNotationVariants().First());
                 progressCurrent = progressTotal;
                 await InvokeAsync(StateHasChanged);
                 await Task.Delay(1);
 
+                IEnumerable<Move> validMoves = positionCopy.GetMoves(playerColor).ToList();
+
                 var moves = positionCopy.Moves;
                 moves.Add(computerMove);
 
-                IEnumerable<Move> validMoves = positionCopy.GetMoves(playerColor);
+                Console.WriteLine("Valid moves:");
+                foreach (var move in validMoves)
+                {
+                    Console.WriteLine(move.GetNotationVariants().First());
+                }
 
                 var shortNotation = computerMove.GetNotationVariants()
                     .First(x => validMoves.Count(y => y.GetNotationVariants().Contains(x)) == 1);

@@ -13,8 +13,7 @@ public sealed class KingTests
     public void GetMoves_WhiteKingInCenterOfBoard_Returns8Moves()
     {
         // Arrange
-        var king = new Piece { Kind = PieceKind.King, Color = PieceColor.White };
-        _sut.AddPiece(king, Coords.Parse("d4"));
+        var king = _sut.Board["d4"] = Piece.CreateKing(PieceColor.White);
         _sut.CastlingRights = new()
         {
             WhiteShort = false,

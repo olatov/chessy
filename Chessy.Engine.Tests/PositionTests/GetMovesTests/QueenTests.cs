@@ -13,8 +13,7 @@ public sealed class QueenTests
     public void GetMoves_WhiteQueenInCenterOfBoard_Returns27Moves()
     {
         // Arrange
-        var queen = new Piece { Kind = PieceKind.Queen, Color = PieceColor.White };
-        _sut.AddPiece(queen, Coords.Parse("d4"));
+        var queen = _sut.Board["d4"] = Piece.CreateQueen(PieceColor.White);
 
         // Act
         var moves = _sut.GetMoves(queen.Color);
