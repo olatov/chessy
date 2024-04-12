@@ -15,7 +15,13 @@ public sealed class KingTests
         // Arrange
         var king = new Piece { Kind = PieceKind.King, Color = PieceColor.White };
         _sut.AddPiece(king, Coords.Parse("d4"));
-        _sut.CastlingState = [false, false, false, false];
+        _sut.CastlingRights = new()
+        {
+            WhiteShort = false,
+            WhiteLong = false,
+            BlackShort = false,
+            BlackLong = false
+        };
         string[] expectedMoves = ["Kc3", "Kd3", "Ke3", "Kc4", "Ke4", "Kc5", "Kd5", "Ke5"];
 
         // Act

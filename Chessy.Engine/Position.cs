@@ -23,7 +23,7 @@ public class Position
         }
     }
 
-    public bool[] CastlingState { get; set; } = [true, true, true, true];
+    public CastlingRights CastlingRights { get; set; } = new();
 
     public Coords? EnPassantTarget { get; set; } = null;
 
@@ -84,7 +84,7 @@ public class Position
 
         ColorToMove = PieceColor.White;
 
-        CastlingState = [true, true, true, true];
+        CastlingRights = new();
     }
 
     public void ResetToEmptyBoard()
@@ -92,7 +92,7 @@ public class Position
         Board = new Board();
         Moves = new List<Move>();
         ColorToMove = PieceColor.White;
-        CastlingState = [true, true, true, true];
+        CastlingRights = new();
     }
 
     public void AddPiece(IPiece piece, Coords position)
@@ -140,13 +140,11 @@ public class Position
 
             if (move.Piece.Color == PieceColor.White)
             {
-                CastlingState[0] = false;
-                CastlingState[1] = false;
+                CastlingRights.WhiteShort = CastlingRights.WhiteLong = false;
             }
             else
             {
-                CastlingState[2] = false;
-                CastlingState[3] = false;
+                CastlingRights.BlackShort = CastlingRights.BlackLong = false;
             }
         }
         else if (move.Piece.Kind == PieceKind.Rook)
@@ -155,22 +153,22 @@ public class Position
             {
                 if (move.From.File == 0)
                 {
-                    CastlingState[1] = false;
+                    CastlingRights.WhiteLong = false;
                 }
                 else if (move.From.File == 7)
                 {
-                    CastlingState[0] = false;
+                    CastlingRights.WhiteShort = false;
                 }
             }
             else
             {
                 if (move.From.File == 0)
                 {
-                    CastlingState[3] = false;
+                    CastlingRights.BlackLong = false;
                 }
                 else if (move.From.File == 7)
                 {
-                    CastlingState[2] = false;
+                    CastlingRights.BlackShort = false;
                 }
             }
         }
@@ -207,13 +205,13 @@ public class Position
 
         if (move.Piece.Color == PieceColor.White)
         {
-            CastlingState[0] = move.CouldCastleShort;
-            CastlingState[1] = move.CouldCastleLong;
+            CastlingRights.WhiteShort = move.CouldCastleShort;
+            CastlingRights.WhiteLong = move.CouldCastleLong;
         }
         else
         {
-            CastlingState[2] = move.CouldCastleShort;
-            CastlingState[3] = move.CouldCastleLong;
+            CastlingRights.BlackShort = move.CouldCastleShort;
+            CastlingRights.BlackLong = move.CouldCastleLong;
         }
     }
 
@@ -323,7 +321,7 @@ public class Position
 
                 if (move.IsCastlingShort || move.IsCastlingLong)
                 {
-                    moveScore += 0.3;
+                    moveScore += 0.15;
                 }
 
                 if (moveScore > bestScore)
@@ -411,13 +409,13 @@ public class Position
 
                         if (fromSquare.Color == PieceColor.White)
                         {
-                            move.CouldCastleShort = CastlingState[0];
-                            move.CouldCastleLong = CastlingState[1];
+                            move.CouldCastleShort = CastlingRights.WhiteShort;
+                            move.CouldCastleLong = CastlingRights.WhiteLong;
                         }
                         else
                         {
-                            move.CouldCastleShort = CastlingState[2];
-                            move.CouldCastleLong = CastlingState[3];
+                            move.CouldCastleShort = CastlingRights.BlackShort;
+                            move.CouldCastleLong = CastlingRights.BlackLong;
                         }
 
                         isLegal = IsLegalMove(move);
@@ -482,6 +480,8 @@ public class Position
 
     public bool IsLegalMove(Move move)
     {
+        // TODO: find a better approach
+
         var piece = Board.Squares[move.From.File, move.From.Rank];
         if (piece is null || piece != move.Piece) { return false; }
 
@@ -491,26 +491,25 @@ public class Position
         switch (piece.Kind)
         {
             case PieceKind.King:
-                if (((Math.Abs(move.From.File - move.To.File) == 1)
-                    && (Math.Abs(move.From.Rank - move.To.Rank) <= 1))
-                    || ((Math.Abs(move.From.File - move.To.File) <= 1)
-                    && (Math.Abs(move.From.Rank - move.To.Rank) == 1)))
+                if ((Math.Abs(move.From.File - move.To.File) == 1
+                        && Math.Abs(move.From.Rank - move.To.Rank) <= 1)
+                    || (Math.Abs(move.From.File - move.To.File) <= 1
+                        && Math.Abs(move.From.Rank - move.To.Rank) == 1))
                 {
                     return true;
                 }
 
                 if (move.IsCastlingShort
                     && Board.IsClearBetween(move.From, new Coords(7, move.From.Rank))
-                    && ((ColorToMove == PieceColor.White && CastlingState[0])
-                        || (ColorToMove == PieceColor.Black && CastlingState[2])))
+                    && ((piece.Color == PieceColor.White && CastlingRights.WhiteShort)
+                        || (piece.Color == PieceColor.Black && CastlingRights.BlackShort)))
                 {
                     return true;
                 }
                 else if (move.IsCastlingLong
                     && Board.IsClearBetween(move.From, new Coords(0, move.From.Rank))
-                    && ((ColorToMove == PieceColor.White && CastlingState[1])
-                        || (ColorToMove == PieceColor.Black && CastlingState[3]))
-                    )
+                    && ((piece.Color == PieceColor.White && CastlingRights.WhiteLong)
+                        || (piece.Color == PieceColor.Black && CastlingRights.BlackLong)))
                 {
                     return true;
                 }
@@ -561,9 +560,9 @@ public class Position
                             return true;
                         }
 
-                        if ((move.From.Rank == 1)
-                            && (move.To.Rank == 3)
-                            && (move.From.File == move.To.File)
+                        if (move.From.Rank == 1
+                            && move.To.Rank == 3
+                            && move.From.File == move.To.File
                             && Board.Squares[move.From.File, 2] is null
                             && Board.Squares[move.From.File, 3] is null)
                         {
@@ -573,17 +572,17 @@ public class Position
                         return false;
 
                     case PieceColor.Black:
-                        if ((move.To.Rank - move.From.Rank == -1)
+                        if (move.To.Rank - move.From.Rank == -1
                             && ((move.From.File == move.To.File && Board.Squares[move.To.File, move.To.Rank] is null)
-                                || (Math.Abs(move.From.File - move.To.File) == 1 
+                                || (Math.Abs(move.From.File - move.To.File) == 1
                                     && (Board.Squares[move.To.File, move.To.Rank]?.Color == PieceColor.White
                                         || move.To == EnPassantTarget))))
                         {
                             return true;
                         }
-                        if ((move.From.Rank == 6)
-                            && (move.To.Rank == 4)
-                            && (move.From.File == move.To.File)
+                        if (move.From.Rank == 6
+                            && move.To.Rank == 4
+                            && move.From.File == move.To.File
                             && Board.Squares[move.From.File, 5] is null
                             && Board.Squares[move.From.File, 4] is null)
                         {

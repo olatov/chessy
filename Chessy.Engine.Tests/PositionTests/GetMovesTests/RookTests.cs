@@ -145,7 +145,7 @@ public sealed class RookTests
     }
 
     [Fact]
-    public void CastlingStateShortTrue_WhenRookNotMoved_AndWhite()
+    public void CastlingShortRightRetains_WhenRookNotMoved_AndWhite()
     {
         // Arrange
         var rook = new Piece { Kind = PieceKind.Rook, Color = PieceColor.White };
@@ -157,13 +157,15 @@ public sealed class RookTests
 
         // Act
         _sut.MakeMove(new Move(pawn, Coords.Parse("f2"), Coords.Parse("f2")));
+        var moves = _sut.GetMoves(king.Color);
 
         // Assert
-        _sut.CastlingState[0].Should().BeTrue();
+        _sut.CastlingRights.WhiteShort.Should().BeTrue();
+        moves.Should().Contain(move => move.IsCastlingShort);
     }
 
     [Fact]
-    public void CastlingStateShortTrue_WhenRookNotMoved_AndBlack()
+    public void CastlingShortRightRetains_WhenRookNotMoved_AndBlack()
     {
         // Arrange
         var rook = new Piece { Kind = PieceKind.Rook, Color = PieceColor.Black };
@@ -175,13 +177,15 @@ public sealed class RookTests
 
         // Act
         _sut.MakeMove(new Move(pawn, Coords.Parse("f7"), Coords.Parse("f6")));
+        var moves = _sut.GetMoves(king.Color);
 
         // Assert
-        _sut.CastlingState[2].Should().BeTrue();
+        _sut.CastlingRights.BlackShort.Should().BeTrue();
+        moves.Should().Contain(move => move.IsCastlingShort);
     }
 
     [Fact]
-    public void CastlingStateShortFalse_WhenRookMoved_AndWhite()
+    public void CastlingShortRightLost_WhenRookMoved_AndWhite()
     {
         // Arrange
         var rook = new Piece { Kind = PieceKind.Rook, Color = PieceColor.White };
@@ -193,13 +197,15 @@ public sealed class RookTests
 
         // Act
         _sut.MakeMove(new Move(rook, Coords.Parse("h1"), Coords.Parse("h2")));
+        var moves = _sut.GetMoves(king.Color);
 
         // Assert
-        _sut.CastlingState[0].Should().BeFalse();
+        _sut.CastlingRights.WhiteShort.Should().BeFalse();
+        moves.Should().NotContain(move => move.IsCastlingShort);
     }
 
     [Fact]
-    public void CastlingStateShortFalse_WhenRookMoved_AndBlack()
+    public void CastlingShortRightLost_WhenRookMoved_AndBlack()
     {
         // Arrange
         var rook = new Piece { Kind = PieceKind.Rook, Color = PieceColor.Black };
@@ -211,13 +217,15 @@ public sealed class RookTests
 
         // Act
         _sut.MakeMove(new Move(rook, Coords.Parse("h8"), Coords.Parse("h7")));
+        var moves = _sut.GetMoves(king.Color);
 
         // Assert
-        _sut.CastlingState[2].Should().BeFalse();
+        _sut.CastlingRights.BlackShort.Should().BeFalse();
+        moves.Should().NotContain(move => move.IsCastlingShort);
     }
 
     [Fact]
-    public void CastlingStateLongTrue_WhenRookNotMoved_AndWhite()
+    public void CastlingStateLongRightRetains_WhenRookNotMoved_AndWhite()
     {
         // Arrange
         var rook = new Piece { Kind = PieceKind.Rook, Color = PieceColor.White };
@@ -229,13 +237,15 @@ public sealed class RookTests
 
         // Act
         _sut.MakeMove(new Move(pawn, Coords.Parse("b2"), Coords.Parse("b3")));
+        var moves = _sut.GetMoves(king.Color);
 
         // Assert
-        _sut.CastlingState[1].Should().BeTrue();
+        _sut.CastlingRights.WhiteLong.Should().BeTrue();
+        moves.Should().Contain(move => move.IsCastlingLong);
     }
 
     [Fact]
-    public void CastlingStateLongTrue_WhenRookNotMoved_AndBlack()
+    public void CastlingLongRightRetains_WhenRookNotMoved_AndBlack()
     {
         // Arrange
         var rook = new Piece { Kind = PieceKind.Rook, Color = PieceColor.Black };
@@ -247,13 +257,15 @@ public sealed class RookTests
 
         // Act
         _sut.MakeMove(new Move(pawn, Coords.Parse("b7"), Coords.Parse("b6")));
+        var moves = _sut.GetMoves(king.Color);
 
         // Assert
-        _sut.CastlingState[3].Should().BeTrue();
+        _sut.CastlingRights.BlackLong.Should().BeTrue();
+        moves.Should().Contain(move => move.IsCastlingLong);
     }
 
     [Fact]
-    public void CastlingStateLongFalse_WhenRookMoved_AndWhite()
+    public void CastlingLongRightLost_WhenRookMoved_AndWhite()
     {
         // Arrange
         var rook = new Piece { Kind = PieceKind.Rook, Color = PieceColor.White };
@@ -265,13 +277,15 @@ public sealed class RookTests
 
         // Act
         _sut.MakeMove(new Move(rook, Coords.Parse("a1"), Coords.Parse("a2")));
+        var moves = _sut.GetMoves(king.Color);
 
         // Assert
-        _sut.CastlingState[1].Should().BeFalse();
+        _sut.CastlingRights.WhiteLong.Should().BeFalse();
+        moves.Should().NotContain(move => move.IsCastlingLong);
     }
 
     [Fact]
-    public void CastlingStateLongFalse_WhenRookMoved_AndBlack()
+    public void CastlingLongRightLost_WhenRookMoved_AndBlack()
     {
         // Arrange
         var rook = new Piece { Kind = PieceKind.Rook, Color = PieceColor.Black };
@@ -283,8 +297,10 @@ public sealed class RookTests
 
         // Act
         _sut.MakeMove(new Move(rook, Coords.Parse("a8"), Coords.Parse("a7")));
+        var moves = _sut.GetMoves(king.Color);
 
         // Assert
-        _sut.CastlingState[3].Should().BeFalse();
+        _sut.CastlingRights.BlackLong.Should().BeFalse();
+        moves.Should().NotContain(move => move.IsCastlingLong);
     }
 }
