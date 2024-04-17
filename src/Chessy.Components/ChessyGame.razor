@@ -344,7 +344,7 @@
 
     private async Task CopyPgnToClipboard()
     {
-        await _js.InvokeVoidAsync("copyToClipboard", PgnText);
+        await _js.InvokeVoidAsync("copyTextToClipboard", PgnText);
         _toastService.ShowInfo("Copied");
     }
 
