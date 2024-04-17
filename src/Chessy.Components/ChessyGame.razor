@@ -1,9 +1,9 @@
 @using System.Diagnostics
 @using System.Text
 
-
 @inject IJSRuntime _js
 @inject IDialogService _dialogService
+@inject IToastService _toastService
 
 <style>
     body {
@@ -207,7 +207,7 @@
 
         <FluentDivider Style="width: 100%;" Orientation=Orientation.Horizontal Role="DividerRole.Separator"/>
 
-        <div class="grid">
+        <div class="grid" @ref="moveListElement">
             <FluentDataGrid Items="@MoveTable"
                 Class="moveList"
                 RowStyle="@((r) => "border: none;")"
@@ -242,6 +242,14 @@
 </FluentStack>
 
 @code {
+    [Parameter]
+    public string WhitePlayer { get; set; } = "0";
+    int whitePlayer => int.Parse(WhitePlayer);
+
+    [Parameter]
+    public string BlackPlayer { get; set; }= "5";
+    int blackPlayer => int.Parse(BlackPlayer);
+
     record MoveListItem(int Number, string? White = null, string? Black = null);
 
     List<MoveListItem> MoveList = new();
@@ -275,14 +283,6 @@
             return sb.ToString();
         }
     }
-
-    [Parameter]
-    public string WhitePlayer { get; set; } = "0";
-    int whitePlayer => int.Parse(WhitePlayer );
-
-    [Parameter]
-    public string BlackPlayer { get; set; }= "5";
-    int blackPlayer => int.Parse(BlackPlayer);
 
     Position position = new Position();
 
@@ -322,6 +322,8 @@
         new() { Value = "7", Text = "Comp level 7" },
     };
 
+    private ElementReference moveListElement { get; set; } = new();
+
     protected override void OnInitialized()
     {
         base.OnInitialized();
@@ -342,7 +344,8 @@
 
     private async Task CopyPgnToClipboard()
     {
-        await _js.InvokeVoidAsync("navigator.clipboard.writeText", PgnText);
+        await _js.InvokeVoidAsync("copyToClipboard", PgnText);
+        _toastService.ShowInfo("Copied");
     }
 
     private async Task OnCellClick(int file, int rank)
@@ -395,15 +398,15 @@
             var matchingMove = matchingMoves.Single();
             currentMove = null;
 
-            MakeMove(matchingMove);
+            await MakeMoveAsync(matchingMove);
         }
     }
 
-    private void MakeMove(Move move)
+    private async Task MakeMoveAsync(Move move)
     {
         var shortNotation = move.GetNotationVariants()
             .First(x => validMoves.Count(y => y.GetNotationVariants().Contains(x)) == 1);
-        Notate(move, shortNotation);
+        await NotateAsync(move, shortNotation);
 
         var moves = position.Moves;
         moves.Add(move);
@@ -413,7 +416,7 @@
         PassTurn();
     }
 
-    private void Notate(Move move, string notation, bool isLetter = true)
+    private async Task NotateAsync(Move move, string notation, bool isLetter = true)
     {
         if (isLetter)
         {
@@ -441,6 +444,8 @@
                 MoveList.Add(new MoveListItem(MoveList.Count + 1));
             }
         }
+
+        await ScrollMoveListAsync();
     }
 
     private void ComputerMove(PieceColor playerColor)
@@ -483,7 +488,7 @@
                 var shortNotation = computerMove.GetNotationVariants()
                     .First(x => validMoves.Count(y => y.GetNotationVariants().Contains(x)) == 1);
 
-                Notate(computerMove, shortNotation);
+                await NotateAsync(computerMove, shortNotation);
 
                 position = Position.FromMoves(moves);
 
@@ -550,5 +555,10 @@
         {
             ComputerMove(PieceColor.Black);
         }
+    }
+
+    public async Task ScrollMoveListAsync()
+    {
+        await _js.InvokeVoidAsync("scrollElementToBottom", moveListElement);
     }
 }
