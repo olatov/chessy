@@ -1,9 +1,14 @@
 ﻿using BenchmarkDotNet.Attributes;
+using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Running;
+
 using Chessy.Engine;
 using Chessy.Engine.Pieces;
 
 namespace Chessy.Benchmarks;
+
+[SimpleJob(RuntimeMoniker.Net80)]
+[SimpleJob(RuntimeMoniker.NativeAot80)]
 
 public class PositionBenchmarks
 {
