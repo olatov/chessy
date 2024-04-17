@@ -5,7 +5,7 @@ services:
     image: chessy-blazor
     build:
       context: .
-      dockerfile: Chessy.Blazor/Dockerfile
+      dockerfile: src/Chessy.Blazor/Dockerfile
     ports:
       - 8080:8080
     #platform: linux/arm64
@@ -14,6 +14,8 @@ services:
     image: chessy-wasm
     build:
       context: .
-      dockerfile: Chessy.BlazorWasm/Dockerfile
+      dockerfile: src/Chessy.BlazorWasm/Dockerfile
     ports:
-      - 8081:80
+      - 8081:8080
+    environment:
+      - NGINX_PORT=8080

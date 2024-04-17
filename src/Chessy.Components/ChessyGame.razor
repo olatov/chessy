@@ -1,0 +1,554 @@
+@using System.Diagnostics
+@using System.Text
+
+
+@inject IJSRuntime _js
+@inject IDialogService _dialogService
+
+<style>
+    body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+    }
+
+@@font-face {
+    font-family: 'FreeSerif';
+    src: url('FreeSerif.woff') format('woff');
+    /* Add other font formats if necessary (e.g., .ttf, .otf) */
+    font-weight: normal;
+    font-style: normal;
+}
+
+  .board {
+    display: grid;
+    grid-template-columns: repeat(8, 72px);
+    grid-template-rows: repeat(8, 72px);
+    border: solid gray;
+    user-select: none;
+  }
+
+  .square {
+    width: 72px;
+    height: 72px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 72px;
+    cursor: pointer;
+    opacity: 1.0;
+    border: none;
+    color: black;
+    font-family: 'FreeSerif', serif;
+  }
+
+  .selected {
+      background-color: rgb(108, 249, 108) !important;
+  }
+
+  .lastMove {
+      background-color: yellow !important;
+  }
+
+  .legalTarget {
+      background-color: rgb(105, 223, 105) !important; /* Modified color */
+  }
+
+  .check {
+      background-color: lightcoral !important;
+  }
+
+  .checkmate {
+      background-color: darkred !important;
+  }
+
+  .light {
+      background-color: white;
+      filter: brightness(95%);
+  }
+
+  .dark {
+      background-color: white;
+      filter: brightness(85%);
+  }
+
+  .container {
+      margin: 32px;
+  }
+
+  .reversed {
+      flex-direction: column-reverse !important;
+  }
+
+  .grid {
+      max-height: 18em;
+      overflow-y: auto;
+  }
+
+  .grid table {
+      min-width: 100%;
+  }
+
+  table {
+      font-size: 16px;
+  }
+
+</style>
+
+<FluentStack
+    HorizontalAlignment="HorizontalAlignment.Center"
+    HorizontalGap="32"
+    Width="100hh">
+
+    <div class="board">
+        @{
+            var files = Enumerable.Empty<int>();
+            var ranks = Enumerable.Empty<int>();
+
+            if (flipBoard)
+            {
+                files = Enumerable.Range(0, 8).Reverse();
+                ranks = Enumerable.Range(0, 8);
+            }
+            else
+            {
+                files = Enumerable.Range(0, 8);
+                ranks = Enumerable.Range(0, 8).Reverse();
+            }
+        }
+
+        @{ var lastMove = position.Moves.LastOrDefault(); }
+
+        @foreach (int file in files)
+        {
+            <div class="rank">
+            @foreach (int rank in ranks)
+            {
+                var square = position.Board.Squares[file, rank];
+                var cssClass = ((rank + file) % 2 == 0) ? "dark" : "light";
+
+                if ((rank == currentMove?.From.Rank && file == currentMove?.From.File)
+                    || (lastMove?.From.Rank == rank && lastMove?.From.File == file)
+                    || (lastMove?.To.Rank == rank && lastMove?.To.File == file))
+                {
+                    cssClass += " selected";
+                }
+
+                if ((lastMove?.From.Rank == rank && lastMove?.From.File == file)
+                    || (lastMove?.To.Rank == rank && lastMove?.To.File == file))
+                {
+                    cssClass += " lastMove";
+                }
+
+                if (legalTargets.Any(x => x.Rank == rank && x.File == file))
+                    {
+                        cssClass += " legalTarget";
+                    }
+
+
+                if (square?.Kind == PieceKind.King && lastMove is not null && lastMove.Piece!.Color != square.Color)
+                {
+                    if (lastMove.IsCheckmate)
+                    {
+                        cssClass += " checkmate";
+                    }
+                    else if (lastMove.IsCheck)
+                    {
+                        cssClass += " check";
+                    }
+                }
+
+                <div class="square @cssClass" @onclick="@(() => OnCellClick(file, rank))">
+                    @(square?.Identifier.ToUpper() ?? string.Empty)
+                </div>
+            }
+            </div>
+        }
+    </div>
+
+    <FluentStack Orientation="Orientation.Vertical">
+        @{ var cssClass = flipBoard ? string.Empty : "reversed"; }
+
+        <FluentStack Orientation="Orientation.Vertical" Class="@cssClass">
+            <div>
+                <FluentSelect
+                    Label="White:"
+                    Items="@PlayerOptions"
+                    TOption="Option<string>"
+                    OptionText="@(x => x.Text)"
+                    OptionValue="@(x => x.Value)"
+                    ValueChanged="OnWhitePlayerChange"
+                    Value="@WhitePlayer">
+                </FluentSelect>
+            </div>
+
+            <div>
+                <FluentSelect
+                    Label="Black:"
+                    Items="@PlayerOptions"
+                    TOption="Option<string>"
+                    OptionText="@(x => x.Text)"
+                    OptionValue="@(x => x.Value)"
+                    ValueChanged="OnBlackPlayerChange"
+                    Value="@BlackPlayer">
+                </FluentSelect>
+            </div>
+        </FluentStack>
+
+        <FluentSpacer />
+
+        <FluentButton Appearance="Appearance.Accent" IconStart="@(new Icons.Regular.Size16.ArrowRepeatAll())" OnClick="@(() => { flipBoard = !flipBoard; })">Flip board</FluentButton>
+
+        <FluentSpacer />
+
+        <FluentCheckbox @bind-Value="@alwaysPromoteToQueen" Label="Auto promote to Queen" />
+
+        <FluentDivider Style="width: 100%;" Orientation=Orientation.Horizontal Role="DividerRole.Separator"/>
+
+        <div class="grid">
+            <FluentDataGrid Items="@MoveTable"
+                Class="moveList"
+                RowStyle="@((r) => "border: none;")"
+                GridTemplateColumns="2fr 3fr 3fr">
+
+                <PropertyColumn
+                    Title=""
+                    Style="padding-top: 0; padding-bottom: 0;"
+                    Property="@(p => $"{p.Number}.")"/>
+                <PropertyColumn
+                    Title="White"
+                    Style="padding-top: 0; padding-bottom: 0;"
+                    Property="@(p => p.White ?? "...")" />
+                <PropertyColumn
+                    Title="Black"
+                    Style="padding-top: 0; padding-bottom: 0;"
+                    Property="@(p => p.Black ?? ((p.White != null && !position.IsGameOver) ? "..." : string.Empty))" />
+            </FluentDataGrid>
+        </div>
+
+        <FluentProgress
+            Width="100%"
+            Stroke="ProgressStroke.Normal"
+            Value="@progressCurrent"
+            Max="@progressTotal">
+        </FluentProgress>
+
+        <FluentButton Appearance="Appearance.Accent"
+            IconStart="@(new Icons.Regular.Size16.Copy())"
+            OnClick="@CopyPgnToClipboard">Copy PGN</FluentButton>
+    </FluentStack>
+</FluentStack>
+
+@code {
+    record MoveListItem(int Number, string? White = null, string? Black = null);
+
+    List<MoveListItem> MoveList = new();
+
+    IQueryable<MoveListItem> MoveTable => MoveList.AsQueryable();
+
+    string PgnText
+    {
+        get
+        {
+            var asPgn = (string value) => value
+                .Replace("♔", "K")
+                .Replace("♕", "Q")
+                .Replace("♖", "R")
+                .Replace("♗", "B")
+                .Replace("♘", "N");
+
+            var sb = new StringBuilder();
+            foreach (var item in MoveTable)
+            {
+                if (item.White is not null)
+                {
+                    sb.Append($"{item.Number}. {asPgn(item.White)} ");
+                    if (item.Black is not null)
+                    {
+                        sb.Append($"{asPgn(item.Black)} ");
+                    }
+                }
+            }
+
+            return sb.ToString();
+        }
+    }
+
+    [Parameter]
+    public string WhitePlayer { get; set; } = "0";
+    int whitePlayer => int.Parse(WhitePlayer );
+
+    [Parameter]
+    public string BlackPlayer { get; set; }= "5";
+    int blackPlayer => int.Parse(BlackPlayer);
+
+    Position position = new Position();
+
+    IList<string> notation = new List<string>();
+
+    string yourMove = string.Empty;
+
+    string hint = string.Empty;
+
+    bool alwaysPromoteToQueen = true;
+
+    bool flipBoard = false;
+
+    Move? currentMove = null;
+
+    IList<Move> validMoves = new List<Move>();
+
+    IEnumerable<Coords> legalTargets => currentMove is not null
+        ? validMoves.Where(x =>
+            x.From.File == currentMove.From.File
+            && x.From.Rank == currentMove.From.Rank)
+        .Select(x => x.To)
+        : Enumerable.Empty<Coords>();
+
+    int progressCurrent = 0;
+    int progressTotal = 1;
+
+    IEnumerable<Option<string>> PlayerOptions = new Option<string>[]
+    {
+        new() { Value = "0", Text = "Human" },
+        new() { Value = "1", Text = "Comp level 1" },
+        new() { Value = "2", Text = "Comp level 2" },
+        new() { Value = "3", Text = "Comp level 3" },
+        new() { Value = "4", Text = "Comp level 4" },
+        new() { Value = "5", Text = "Comp level 5" },
+        new() { Value = "6", Text = "Comp level 6" },
+        new() { Value = "7", Text = "Comp level 7" },
+    };
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        position.ResetToStartingPosition();
+        MoveList.Clear();
+        MoveList.Add(new MoveListItem(1));
+
+        if (whitePlayer == 0)
+        {
+            validMoves = position.GetMoves(PieceColor.White).ToList();
+        }
+        else
+        {
+            ComputerMove(position.ColorToMove);
+        }
+    }
+
+    private async Task CopyPgnToClipboard()
+    {
+        await _js.InvokeVoidAsync("navigator.clipboard.writeText", PgnText);
+    }
+
+    private async Task OnCellClick(int file, int rank)
+    {
+        if (currentMove is null)
+        {
+            IPiece? piece = position.Board.Squares[file, rank];
+            if (piece is not null && piece?.Color == position.ColorToMove)
+            {
+                currentMove = new Move(piece, new Coords(file, rank), new Coords(-1, -1));
+            }
+        }
+        else
+        {
+            currentMove.To = new(file, rank);
+
+            var matchingMoves = validMoves.Where(x =>
+                x.From.File == currentMove.From.File
+                && x.From.Rank == currentMove.From.Rank
+                && x.To.File == currentMove.To.File
+                && x.To.Rank == currentMove.To.Rank);
+
+            if (!matchingMoves.Any())
+            {
+                currentMove = null;
+                return;
+            }
+
+            if (currentMove.Piece!.Kind == PieceKind.Pawn && (currentMove.To.Rank is 0 or 7))
+            {
+                if (alwaysPromoteToQueen)
+                {
+                    currentMove.PromotionPieceKind = PieceKind.Queen;
+                }
+                else
+                {
+                    var dialog = await _dialogService.ShowDialogAsync<PromotionDialog>(
+                        PieceKind.Queen,
+                        new DialogParameters
+                        {
+                            SecondaryActionEnabled = false,
+                        });
+                    var result = await dialog.Result;
+                    currentMove.PromotionPieceKind = (result.Data as PieceKind?) ?? PieceKind.Queen;
+                }
+
+                matchingMoves = matchingMoves.Where(x => x.PromotionPieceKind == currentMove.PromotionPieceKind);
+            }
+
+            var matchingMove = matchingMoves.Single();
+            currentMove = null;
+
+            MakeMove(matchingMove);
+        }
+    }
+
+    private void MakeMove(Move move)
+    {
+        var shortNotation = move.GetNotationVariants()
+            .First(x => validMoves.Count(y => y.GetNotationVariants().Contains(x)) == 1);
+        Notate(move, shortNotation);
+
+        var moves = position.Moves;
+        moves.Add(move);
+        position = Position.FromMoves(moves);
+        validMoves.Clear();
+
+        PassTurn();
+    }
+
+    private void Notate(Move move, string notation, bool isLetter = true)
+    {
+        if (isLetter)
+        {
+            notation = notation
+                .Replace("♔", "K")
+                .Replace("♕", "Q")
+                .Replace("♖", "R")
+                .Replace("♗", "B")
+                .Replace("♘", "N");
+        }
+
+        if (move.Piece!.Color == PieceColor.White)
+        {
+            MoveList[^1] = MoveList[^1] with { White = notation };
+            if (!(move.IsCheckmate || move.IsStalemate))
+            {
+                MoveList[^1] = MoveList[^1] with { Black = null };
+            }
+        }
+        else
+        {
+            MoveList[^1] = MoveList[^1] with { Black = notation };
+            if (!(move.IsCheckmate || move.IsStalemate))
+            {
+                MoveList.Add(new MoveListItem(MoveList.Count + 1));
+            }
+        }
+    }
+
+    private void ComputerMove(PieceColor playerColor)
+    {
+        Console.WriteLine($"Computer move for {playerColor}");
+        Task.Run(async () =>
+        {
+            Console.WriteLine("Thinking task started...");
+            Position positionCopy = Position.FromMoves(position.Moves);
+            progressTotal = 1;
+            progressCurrent = 0;
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(1);
+
+            async void OnProgressChange(object? sender, FindMoveProgressEventArgs e)
+            {
+                progressCurrent = e.Current;
+                progressTotal = e.Total;
+                await InvokeAsync(StateHasChanged);
+                await Task.Delay(1);
+            }
+
+            positionCopy.FindMoveProgress += OnProgressChange;
+            int aiLevel = playerColor == PieceColor.White ? whitePlayer : blackPlayer;
+            Move? computerMove = await positionCopy.FindBestMoveABAsync(playerColor, aiLevel);
+            positionCopy.FindMoveProgress -= OnProgressChange;
+
+            if (computerMove is not null)
+            {
+                Console.WriteLine("Computer move found: " + computerMove.GetNotationVariants().First());
+                progressCurrent = progressTotal;
+                await InvokeAsync(StateHasChanged);
+                await Task.Delay(1);
+
+                IEnumerable<Move> validMoves = positionCopy.GetMoves(playerColor).ToList();
+
+                var moves = positionCopy.Moves;
+                moves.Add(computerMove);
+
+                var shortNotation = computerMove.GetNotationVariants()
+                    .First(x => validMoves.Count(y => y.GetNotationVariants().Contains(x)) == 1);
+
+                Notate(computerMove, shortNotation);
+
+                position = Position.FromMoves(moves);
+
+                progressCurrent = 0;
+                await InvokeAsync(StateHasChanged);
+                await Task.Delay(1);
+
+                PassTurn();
+            }
+            else
+            {
+                Console.WriteLine("Computer has no legal moves");
+            }
+        });
+    }
+
+    private void PassTurn()
+    {
+        var lastMove = position.Moves.LastOrDefault();
+
+        if (position.Moves.Count > 1000)
+        {
+            Console.WriteLine("Enough, stop.");
+            Console.WriteLine("Game over");
+            return;
+        }
+
+        if (lastMove?.IsCheckmate == true || lastMove?.IsStalemate == true)
+        {
+            Console.WriteLine(lastMove.IsCheckmate ? "Checkmate" : "Stalemate");
+            Console.WriteLine("Game over");
+            return;
+        }
+
+        var currentPlayer = position.ColorToMove == PieceColor.White ? whitePlayer : blackPlayer;
+        if (currentPlayer == 0)
+        {
+            var positionCopy = Position.FromMoves(position.Moves);
+            var sw = Stopwatch.StartNew();
+            validMoves = positionCopy.GetMoves(position.ColorToMove).ToList();
+            sw.Stop();
+        }
+        else
+        {
+            ComputerMove(position.ColorToMove);
+        }
+    }
+
+    private void OnWhitePlayerChange(string value)
+    {
+        WhitePlayer = value;
+
+        if (whitePlayer != 0 && position.ColorToMove == PieceColor.White)
+        {
+            ComputerMove(PieceColor.White);
+        }
+    }
+
+    private void OnBlackPlayerChange(string value)
+    {
+        BlackPlayer = value;
+
+        if (blackPlayer != 0 && position.ColorToMove == PieceColor.Black)
+        {
+            ComputerMove(PieceColor.Black);
+        }
+    }
+}

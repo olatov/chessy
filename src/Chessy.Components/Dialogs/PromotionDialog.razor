@@ -1,0 +1,33 @@
+@using Chessy.Engine.Pieces
+
+@implements IDialogContentComponent<PieceKind>
+
+<FluentDialogHeader>
+    <FluentLabel Typo="Typography.PaneHeader">Select a piece to promote to:</FluentLabel>
+</FluentDialogHeader>
+
+<FluentBodyContent>
+    <FluentButton OnClick="() => MakeSelection(PieceKind.Queen)">♕ Queen</FluentButton>
+    <FluentButton OnClick="() => MakeSelection(PieceKind.Rook)">♖ Rook</FluentButton>
+    <FluentButton OnClick="() => MakeSelection(PieceKind.Bishop)">♗ Bishop</FluentButton>
+    <FluentButton OnClick="() => MakeSelection(PieceKind.Knight)">♘ Knight</FluentButton>
+</FluentBodyContent>
+
+@code {
+    [Parameter]
+    public PieceKind Content { get; set; } = PieceKind.Rook;
+
+    [CascadingParameter]
+    public FluentDialog Dialog { get; set; } = default!;
+
+    private async Task MakeSelection(PieceKind pieceKind)
+    {
+        Content = pieceKind;
+        await SaveAsync();
+    }
+
+    private async Task SaveAsync()
+    {
+        await Dialog.CloseAsync(Content);
+    }
+}

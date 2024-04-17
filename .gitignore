@@ -3,6 +3,10 @@ obj/
 BenchmarkDotNet.Artifacts/
 .vs/
 .vscode/
+sonar-project.properties
+.scannerwork
 
 # Local Netlify folder
 .netlify
+
+fly.toml
