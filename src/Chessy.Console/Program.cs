@@ -1,24 +1,19 @@
-﻿using System;
-using Chessy.Engine;
+﻿using Chessy.Engine;
+using Chessy.Engine.Pieces;
 
-namespace Chessy.Console
+namespace Chessy.Console;
+
+internal static class Program
 {
-    internal class Program
+    static void Main(string[] args)
     {
-        static void Main(string[] args)
-        {
-            System.Console.WriteLine("Hello, World!");
+        var position = new Position();
+        position.ResetToStartingPosition();
 
-            var position = new Position();
-            position.ResetToStartingPosition();
+        var moves = position.GetMoves(PieceColor.White);
 
-            //var moves = position.GetMoves().ToList();
-
-            //System.Console.WriteLine(moves.Count);
-            //foreach (var move in moves)
-            //{
-            //    System.Console.WriteLine(move.Notation);
-            //}
-        }
+        System.Console.WriteLine("Valid moves: ");
+        System.Console.WriteLine(string.Join(" ", moves.Select(x => x.ToString())));
     }
 }
+

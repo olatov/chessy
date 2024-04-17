@@ -19,3 +19,21 @@ services:
       - 8081:8080
     environment:
       - NGINX_PORT=8080
+
+  console:
+    image: chessy-console
+    build:
+      context: .
+      dockerfile: src/Chessy.Console/Dockerfile
+
+  benchmarks:
+    image: chessy-benchmarks
+    build:
+      context: .
+      dockerfile: tests/Chessy.Benchmarks/Dockerfile
+
+  engine-tests:
+    image: chessy-engine-tests
+    build:
+      context: .
+      dockerfile: tests/Chessy.Engine.Tests/Dockerfile
