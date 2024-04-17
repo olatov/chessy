@@ -10,33 +10,38 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        height: 100vh;
+        background-color: darkgray;
         margin: 0;
     }
 
-@@font-face {
-    font-family: 'FreeSerif';
-    src: url('FreeSerif.woff') format('woff');
-    /* Add other font formats if necessary (e.g., .ttf, .otf) */
-    font-weight: normal;
-    font-style: normal;
-}
+    @@font-face {
+        font-family: 'FreeSerif';
+        src: url('FreeSerif.woff') format('woff');
+        /* Add other font formats if necessary (e.g., .ttf, .otf) */
+        font-weight: normal;
+        font-style: normal;
+    }
+
+    .container {
+        background-color: white;
+        width: auto;
+    }
 
   .board {
     display: grid;
-    grid-template-columns: repeat(8, 72px);
-    grid-template-rows: repeat(8, 72px);
+    grid-template-columns: repeat(8, 5rem);
+    grid-template-rows: repeat(8, 5rem);
     border: solid gray;
     user-select: none;
   }
 
   .square {
-    width: 72px;
-    height: 72px;
+    width: 5rem;
+    height: 5rem;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 72px;
+    font-size: 5.5rem;
     cursor: pointer;
     opacity: 1.0;
     border: none;
@@ -83,7 +88,7 @@
   }
 
   .grid {
-      max-height: 18em;
+      max-height: 18rem;
       overflow-y: auto;
   }
 
@@ -97,10 +102,11 @@
 
 </style>
 
+<FluentCard Class="container">
+
 <FluentStack
     HorizontalAlignment="HorizontalAlignment.Center"
-    HorizontalGap="32"
-    Width="100hh">
+    HorizontalGap="32">
 
     <div class="board">
         @{
@@ -169,6 +175,18 @@
     </div>
 
     <FluentStack Orientation="Orientation.Vertical">
+        <FluentStack Orientation="Orientation.Horizontal">
+            <FluentButton
+                IconStart="@(new Icons.Regular.Size20.Chess())"
+                OnClick="OnNewGameClick">New game</FluentButton>
+
+            <FluentButton Appearance="Appearance.Accent"
+                IconStart="@(new Icons.Regular.Size16.ArrowRepeatAll())"
+                OnClick="@(() => { flipBoard = !flipBoard; })">Flip board</FluentButton>
+        </FluentStack>
+
+        <FluentSpacer />
+
         @{ var cssClass = flipBoard ? string.Empty : "reversed"; }
 
         <FluentStack Orientation="Orientation.Vertical" Class="@cssClass">
@@ -199,16 +217,12 @@
 
         <FluentSpacer />
 
-        <FluentButton Appearance="Appearance.Accent" IconStart="@(new Icons.Regular.Size16.ArrowRepeatAll())" OnClick="@(() => { flipBoard = !flipBoard; })">Flip board</FluentButton>
-
-        <FluentSpacer />
-
         <FluentCheckbox @bind-Value="@alwaysPromoteToQueen" Label="Auto promote to Queen" />
 
         <FluentDivider Style="width: 100%;" Orientation=Orientation.Horizontal Role="DividerRole.Separator"/>
 
         <div class="grid" @ref="moveListElement">
-            <FluentDataGrid Items="@MoveTable"
+            <FluentDataGrid Items="@moveTable"
                 Class="moveList"
                 RowStyle="@((r) => "border: none;")"
                 GridTemplateColumns="2fr 3fr 3fr">
@@ -237,9 +251,12 @@
 
         <FluentButton Appearance="Appearance.Accent"
             IconStart="@(new Icons.Regular.Size16.Copy())"
-            OnClick="@CopyPgnToClipboard">Copy PGN</FluentButton>
+            OnClick="@CopyPgnToClipboard"
+            disabled="@(!moveList.Any())"
+            >Copy PGN</FluentButton>
     </FluentStack>
 </FluentStack>
+</FluentCard>
 
 @code {
     [Parameter]
@@ -252,30 +269,25 @@
 
     record MoveListItem(int Number, string? White = null, string? Black = null);
 
-    List<MoveListItem> MoveList = new();
+    List<MoveListItem> moveList = new();
 
-    IQueryable<MoveListItem> MoveTable => MoveList.AsQueryable();
+    IQueryable<MoveListItem> moveTable => moveList.AsQueryable();
+
+    bool isGameOver = false;
 
     string PgnText
     {
         get
         {
-            var asPgn = (string value) => value
-                .Replace("♔", "K")
-                .Replace("♕", "Q")
-                .Replace("♖", "R")
-                .Replace("♗", "B")
-                .Replace("♘", "N");
-
             var sb = new StringBuilder();
-            foreach (var item in MoveTable)
+            foreach (var item in moveTable)
             {
                 if (item.White is not null)
                 {
-                    sb.Append($"{item.Number}. {asPgn(item.White)} ");
+                    sb.Append($"{item.Number}. {item.White} ");
                     if (item.Black is not null)
                     {
-                        sb.Append($"{asPgn(item.Black)} ");
+                        sb.Append($"{item.Black} ");
                     }
                 }
             }
@@ -328,18 +340,7 @@
     {
         base.OnInitialized();
 
-        position.ResetToStartingPosition();
-        MoveList.Clear();
-        MoveList.Add(new MoveListItem(1));
-
-        if (whitePlayer == 0)
-        {
-            validMoves = position.GetMoves(PieceColor.White).ToList();
-        }
-        else
-        {
-            ComputerMove(position.ColorToMove);
-        }
+        StartNewGame();
     }
 
     private async Task CopyPgnToClipboard()
@@ -350,6 +351,8 @@
 
     private async Task OnCellClick(int file, int rank)
     {
+        if (isGameOver) { return; }
+
         if (currentMove is null)
         {
             IPiece? piece = position.Board.Squares[file, rank];
@@ -430,18 +433,18 @@
 
         if (move.Piece!.Color == PieceColor.White)
         {
-            MoveList[^1] = MoveList[^1] with { White = notation };
+            moveList[^1] = moveList[^1] with { White = notation };
             if (!(move.IsCheckmate || move.IsStalemate))
             {
-                MoveList[^1] = MoveList[^1] with { Black = null };
+                moveList[^1] = moveList[^1] with { Black = null };
             }
         }
         else
         {
-            MoveList[^1] = MoveList[^1] with { Black = notation };
+            moveList[^1] = moveList[^1] with { Black = notation };
             if (!(move.IsCheckmate || move.IsStalemate))
             {
-                MoveList.Add(new MoveListItem(MoveList.Count + 1));
+                moveList.Add(new MoveListItem(moveList.Count + 1));
             }
         }
 
@@ -508,18 +511,27 @@
     private void PassTurn()
     {
         var lastMove = position.Moves.LastOrDefault();
+        if (lastMove is null) { return; }
 
         if (position.Moves.Count > 1000)
         {
-            Console.WriteLine("Enough, stop.");
-            Console.WriteLine("Game over");
+            _dialogService.ShowInfo("This goes for too long, the game abandoned.", "Draw");
+            isGameOver = true;
             return;
         }
 
-        if (lastMove?.IsCheckmate == true || lastMove?.IsStalemate == true)
+        if (lastMove.IsCheckmate)
         {
-            Console.WriteLine(lastMove.IsCheckmate ? "Checkmate" : "Stalemate");
-            Console.WriteLine("Game over");
+            var winner = lastMove.Piece.Color.ToString();
+            _dialogService.ShowInfo("Checkmate", $"{winner} won");
+            isGameOver = true;
+            return;
+        }
+
+        if (lastMove.IsStalemate)
+        {
+            _dialogService.ShowInfo("Stalemate", "Draw");
+            isGameOver = true;
             return;
         }
 
@@ -560,5 +572,27 @@
     public async Task ScrollMoveListAsync()
     {
         await _js.InvokeVoidAsync("scrollElementToBottom", moveListElement);
+    }
+
+    public void StartNewGame()
+    {
+        position.ResetToStartingPosition();
+        moveList.Clear();
+        isGameOver = false;
+        moveList.Add(new MoveListItem(1));
+
+        if (whitePlayer == 0)
+        {
+            validMoves = position.GetMoves(PieceColor.White).ToList();
+        }
+        else
+        {
+            ComputerMove(position.ColorToMove);
+        }
+    }
+
+    public void OnNewGameClick()
+    {
+        StartNewGame();
     }
 }
