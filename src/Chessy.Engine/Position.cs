@@ -422,7 +422,10 @@ public class Position
                         opponentMoves = GetMoves(playerColor.OpponentColor(), true);
                         bool isUnderCheckAfterMove = opponentMoves.Any(x => x.CapturedPiece?.Kind == PieceKind.King);
 
-                        if (isUnderCheckAfterMove)
+                        if (isUnderCheckAfterMove
+                            || (isUnderCheckNow && (move.IsCastlingShort || move.IsCastlingLong))
+                            || move.IsCastlingShort && (opponentMoves.Any(x => x.To == new Coords(5, move.To.Rank)))
+                            || move.IsCastlingLong && (opponentMoves.Any(x => x.To == new Coords(3, move.To.Rank))))
                         {
                             UndoMove(move);
                             break;
@@ -444,10 +447,7 @@ public class Position
 
                         UndoMove(move);
 
-                        if ((move.IsCastlingShort || move.IsCastlingLong) && isUnderCheckNow)
-                        {
-                            break;
-                        }
+
                     }
 
                     yield return move;
