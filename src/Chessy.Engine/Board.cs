@@ -117,16 +117,18 @@ public record Board
                     if (piece is not null)
                     {
                         double value = piece.GetValue();
-                        result += value; // + (8 - Math.Abs(4 - file) - Math.Abs(4 - rank)) * 0.01 * Math.Sign(value);
-                        result += (4 - Math.Abs(4 - file)) * 0.002 * Math.Sign(value);
-                        result += (4 - Math.Abs(4 - rank)) * 0.002 * Math.Sign(value);
-                        //result += value + (8.0 - Math.Abs(3.5 - file) - Math.Abs(3.5 - rank)) * 0.001 * Math.Sign(value);
-                        if (piece.Kind == PieceKind.Pawn)
+                        result += value;
+                        int sign = Math.Sign(value);
+                        if (piece.Kind != PieceKind.Pawn)
+                        {
+                            result += (4 - Math.Abs(3.5 - file)) * 0.04 * sign
+                                    + (4 - Math.Abs(3.5 - rank)) * 0.04 * sign;
+                        }
+                        else
                         {
                             result += (piece.Color == PieceColor.White)
-                                ? rank * 0.01 * 0.01 * (3.5 - Math.Abs(3.5 - file))
-                                : (rank - 7) * 0.01 * (3.5 - Math.Abs(3.5 - file));
-                            //result += Math.Abs(3.5 - rank);
+                                ? (rank       * 0.05 + 0.02 * Math.Abs(3.5 - file)) * sign
+                                : ((7 - rank) * 0.05 + 0.03 * Math.Abs(3.5 - file)) * sign;
                         }
                     }
                 }

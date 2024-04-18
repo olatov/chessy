@@ -621,6 +621,8 @@
     private async void OnDropEndAsync(FluentDragEventArgs<Coords> args)
     {
         // TODO: rewrite propertly
+        if (currentMove is null) { return; }
+
         currentMove.To = args.Target.Item;
 
         await OnCellClickAsync(args.Target.Item.File, args.Target.Item.Rank);
