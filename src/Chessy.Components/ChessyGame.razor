@@ -50,7 +50,7 @@
   }
 
   .lastMove {
-      background-color: rgb(255, 255, 72) !important;
+      background-color: rgb(255, 242, 5) !important;
   }
 
   .legalTarget {
@@ -67,12 +67,12 @@
 
   .light {
       background-color: white;
-      filter: brightness(95%);
+      filter: brightness(90%);
   }
 
   .dark {
       background-color: white;
-      filter: brightness(85%);
+      filter: brightness(82%);
   }
 
   .container {
@@ -526,30 +526,30 @@
             return;
         }
 
-        if (lastMove.IsCheckmate)
-        {
-            var winner = lastMove.Piece.Color.ToString();
-            await _dialogService.ShowInfoAsync("Checkmate", $"{winner} won");
-            isGameOver = true;
-            return;
-        }
-
-        if (lastMove.IsStalemate)
-        {
-            await _dialogService.ShowInfoAsync("Stalemate", "Draw");
-            isGameOver = true;
-            return;
-        }
-
         var currentPlayer = position.ColorToMove == PieceColor.White ? whitePlayer : blackPlayer;
-        if (currentPlayer == 0)
+
+        var sw = Stopwatch.StartNew();
+        var positionCopy = Position.FromMoves(position.Moves);
+        validMoves = positionCopy.GetMoves(position.ColorToMove).ToList();
+        if (!validMoves.Any())
         {
-            var positionCopy = Position.FromMoves(position.Moves);
-            var sw = Stopwatch.StartNew();
-            validMoves = positionCopy.GetMoves(position.ColorToMove).ToList();
-            sw.Stop();
+            if (lastMove.IsCheck)
+            {
+                var winner = lastMove.Piece.Color.ToString();
+
+                _toastService.ShowEvent($"Checkmate - {winner} won.");
+                isGameOver = true;
+                return;
+            }
+
+            _toastService.ShowEvent("Stalemate - draw.");
+            isGameOver = true;
+            return;
         }
-        else
+
+        sw.Stop();
+
+        if (currentPlayer != 0)
         {
             ComputerMove(position.ColorToMove);
         }
