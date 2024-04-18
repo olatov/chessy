@@ -22,26 +22,21 @@
         font-style: normal;
     }
 
-    .container {
-        background-color: white;
-        width: auto;
-    }
-
   .board {
     display: grid;
-    grid-template-columns: repeat(8, 5rem);
-    grid-template-rows: repeat(8, 5rem);
+    grid-template-columns: repeat(8, 5.25rem);
+    grid-template-rows: repeat(8, 5.25rem);
     border: solid gray;
     user-select: none;
   }
 
   .square {
-    width: 5rem;
-    height: 5rem;
+    width: 5.25rem;
+    height: 5.25rem;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 5.5rem;
+    font-size: 5.75rem;
     cursor: pointer;
     opacity: 1.0;
     border: none;
@@ -50,15 +45,15 @@
   }
 
   .selected {
-      background-color: rgb(108, 249, 108) !important;
+      background-color: rgb(134, 254, 55) !important;
   }
 
   .lastMove {
-      background-color: yellow !important;
+      background-color: rgb(255, 255, 72) !important;
   }
 
   .legalTarget {
-      background-color: rgb(105, 223, 105) !important; /* Modified color */
+      background-color: rgb(179, 253, 141) !important; /* Modified color */
   }
 
   .check {
@@ -81,6 +76,8 @@
 
   .container {
       margin: 32px;
+      padding: 12px !important;
+      width: auto;
   }
 
   .reversed {
@@ -94,168 +91,164 @@
 
   .grid table {
       min-width: 100%;
-  }
-
-  table {
-      font-size: 16px;
+    font-size: 24px;
   }
 
 </style>
 
 <FluentCard Class="container">
+    <FluentStack
+        HorizontalAlignment="HorizontalAlignment.Center"
+        HorizontalGap="32">
 
-<FluentStack
-    HorizontalAlignment="HorizontalAlignment.Center"
-    HorizontalGap="32">
+        <div class="board">
+            @{
+                var files = Enumerable.Empty<int>();
+                var ranks = Enumerable.Empty<int>();
 
-    <div class="board">
-        @{
-            var files = Enumerable.Empty<int>();
-            var ranks = Enumerable.Empty<int>();
-
-            if (flipBoard)
-            {
-                files = Enumerable.Range(0, 8).Reverse();
-                ranks = Enumerable.Range(0, 8);
+                if (flipBoard)
+                {
+                    files = Enumerable.Range(0, 8).Reverse();
+                    ranks = Enumerable.Range(0, 8);
+                }
+                else
+                {
+                    files = Enumerable.Range(0, 8);
+                    ranks = Enumerable.Range(0, 8).Reverse();
+                }
             }
-            else
+
+            @{ var lastMove = position.Moves.LastOrDefault(); }
+
+            @foreach (int file in files)
             {
-                files = Enumerable.Range(0, 8);
-                ranks = Enumerable.Range(0, 8).Reverse();
-            }
-        }
-
-        @{ var lastMove = position.Moves.LastOrDefault(); }
-
-        @foreach (int file in files)
-        {
-            <div class="rank">
-            @foreach (int rank in ranks)
-            {
-                var square = position.Board.Squares[file, rank];
-                var cssClass = ((rank + file) % 2 == 0) ? "dark" : "light";
-
-                if ((rank == currentMove?.From.Rank && file == currentMove?.From.File)
-                    || (lastMove?.From.Rank == rank && lastMove?.From.File == file)
-                    || (lastMove?.To.Rank == rank && lastMove?.To.File == file))
+                <div class="rank">
+                @foreach (int rank in ranks)
                 {
-                    cssClass += " selected";
-                }
+                    var square = position.Board.Squares[file, rank];
+                    var cssClass = ((rank + file) % 2 == 0) ? "dark" : "light";
 
-                if ((lastMove?.From.Rank == rank && lastMove?.From.File == file)
-                    || (lastMove?.To.Rank == rank && lastMove?.To.File == file))
-                {
-                    cssClass += " lastMove";
-                }
-
-                if (legalTargets.Any(x => x.Rank == rank && x.File == file))
+                    if ((rank == currentMove?.From.Rank && file == currentMove?.From.File)
+                        || (lastMove?.From.Rank == rank && lastMove?.From.File == file)
+                        || (lastMove?.To.Rank == rank && lastMove?.To.File == file))
                     {
-                        cssClass += " legalTarget";
+                        cssClass += " selected";
                     }
 
+                    if ((lastMove?.From.Rank == rank && lastMove?.From.File == file)
+                        || (lastMove?.To.Rank == rank && lastMove?.To.File == file))
+                    {
+                        cssClass += " lastMove";
+                    }
 
-                if (square?.Kind == PieceKind.King && lastMove is not null && lastMove.Piece!.Color != square.Color)
-                {
-                    if (lastMove.IsCheckmate)
+                    if (legalTargets.Any(x => x.Rank == rank && x.File == file))
+                        {
+                            cssClass += " legalTarget";
+                        }
+
+
+                    if (square?.Kind == PieceKind.King && lastMove is not null && lastMove.Piece!.Color != square.Color)
                     {
-                        cssClass += " checkmate";
+                        if (lastMove.IsCheckmate)
+                        {
+                            cssClass += " checkmate";
+                        }
+                        else if (lastMove.IsCheck)
+                        {
+                            cssClass += " check";
+                        }
                     }
-                    else if (lastMove.IsCheck)
-                    {
-                        cssClass += " check";
-                    }
+
+                    <div class="square @cssClass" @onclick="@(() => OnCellClick(file, rank))">
+                        @(square?.Identifier.ToUpper() ?? string.Empty)
+                    </div>
                 }
-
-                <div class="square @cssClass" @onclick="@(() => OnCellClick(file, rank))">
-                    @(square?.Identifier.ToUpper() ?? string.Empty)
                 </div>
             }
-            </div>
-        }
-    </div>
-
-    <FluentStack Orientation="Orientation.Vertical">
-        <FluentStack Orientation="Orientation.Horizontal">
-            <FluentButton
-                IconStart="@(new Icons.Regular.Size20.Chess())"
-                OnClick="OnNewGameClick">New game</FluentButton>
-
-            <FluentButton Appearance="Appearance.Accent"
-                IconStart="@(new Icons.Regular.Size16.ArrowRepeatAll())"
-                OnClick="@(() => { flipBoard = !flipBoard; })">Flip board</FluentButton>
-        </FluentStack>
-
-        <FluentSpacer />
-
-        @{ var cssClass = flipBoard ? string.Empty : "reversed"; }
-
-        <FluentStack Orientation="Orientation.Vertical" Class="@cssClass">
-            <div>
-                <FluentSelect
-                    Label="White:"
-                    Items="@PlayerOptions"
-                    TOption="Option<string>"
-                    OptionText="@(x => x.Text)"
-                    OptionValue="@(x => x.Value)"
-                    ValueChanged="OnWhitePlayerChange"
-                    Value="@WhitePlayer">
-                </FluentSelect>
-            </div>
-
-            <div>
-                <FluentSelect
-                    Label="Black:"
-                    Items="@PlayerOptions"
-                    TOption="Option<string>"
-                    OptionText="@(x => x.Text)"
-                    OptionValue="@(x => x.Value)"
-                    ValueChanged="OnBlackPlayerChange"
-                    Value="@BlackPlayer">
-                </FluentSelect>
-            </div>
-        </FluentStack>
-
-        <FluentSpacer />
-
-        <FluentCheckbox @bind-Value="@alwaysPromoteToQueen" Label="Auto promote to Queen" />
-
-        <FluentDivider Style="width: 100%;" Orientation=Orientation.Horizontal Role="DividerRole.Separator"/>
-
-        <div class="grid" @ref="moveListElement">
-            <FluentDataGrid Items="@moveTable"
-                Class="moveList"
-                RowStyle="@((r) => "border: none;")"
-                GridTemplateColumns="2fr 3fr 3fr">
-
-                <PropertyColumn
-                    Title=""
-                    Style="padding-top: 0; padding-bottom: 0;"
-                    Property="@(p => $"{p.Number}.")"/>
-                <PropertyColumn
-                    Title="White"
-                    Style="padding-top: 0; padding-bottom: 0;"
-                    Property="@(p => p.White ?? "...")" />
-                <PropertyColumn
-                    Title="Black"
-                    Style="padding-top: 0; padding-bottom: 0;"
-                    Property="@(p => p.Black ?? ((p.White != null && !position.IsGameOver) ? "..." : string.Empty))" />
-            </FluentDataGrid>
         </div>
 
-        <FluentProgress
-            Width="100%"
-            Stroke="ProgressStroke.Normal"
-            Value="@progressCurrent"
-            Max="@progressTotal">
-        </FluentProgress>
+        <FluentStack Orientation="Orientation.Vertical">
+            <FluentStack Orientation="Orientation.Horizontal">
+                <FluentButton
+                    IconStart="@(new Icons.Regular.Size20.Chess())"
+                    OnClick="OnNewGameClick">New game</FluentButton>
 
-        <FluentButton Appearance="Appearance.Accent"
-            IconStart="@(new Icons.Regular.Size16.Copy())"
-            OnClick="@CopyPgnToClipboard"
-            disabled="@(!moveList.Any())"
-            >Copy PGN</FluentButton>
+                <FluentButton
+                    IconStart="@(new Icons.Regular.Size16.ArrowRepeatAll())"
+                    OnClick="@(() => { flipBoard = !flipBoard; })">Flip board</FluentButton>
+            </FluentStack>
+
+            <FluentSpacer />
+
+            @{ var cssClass = flipBoard ? string.Empty : "reversed"; }
+
+            <FluentStack Orientation="Orientation.Vertical" Class="@cssClass">
+                <div>
+                    <FluentSelect
+                        Label="White:"
+                        Items="@PlayerOptions"
+                        TOption="Option<string>"
+                        OptionText="@(x => x.Text)"
+                        OptionValue="@(x => x.Value)"
+                        ValueChanged="OnWhitePlayerChange"
+                        Value="@WhitePlayer">
+                    </FluentSelect>
+                </div>
+
+                <div>
+                    <FluentSelect
+                        Label="Black:"
+                        Items="@PlayerOptions"
+                        TOption="Option<string>"
+                        OptionText="@(x => x.Text)"
+                        OptionValue="@(x => x.Value)"
+                        ValueChanged="OnBlackPlayerChange"
+                        Value="@BlackPlayer">
+                    </FluentSelect>
+                </div>
+            </FluentStack>
+
+            <FluentSpacer />
+
+            <FluentCheckbox @bind-Value="@alwaysPromoteToQueen" Label="Auto promote to Queen" />
+
+            <FluentDivider Style="width: 100%;" Orientation=Orientation.Horizontal Role="DividerRole.Separator"/>
+
+            <div class="grid" @ref="moveListElement">
+                <FluentDataGrid Items="@moveTable"
+                    Class="moveList"
+                    RowStyle="@((r) => "border: none;")"
+                    GridTemplateColumns="2fr 3fr 3fr">
+
+                    <PropertyColumn
+                        Title=""
+                        Style="padding-top: 2px; padding-bottom: 2px; font-size: 16px;"
+                        Property="@(p => $"{p.Number}.")"/>
+                    <PropertyColumn
+                        Title="White"
+                        Style="padding-top: 2px; padding-bottom: 2px; font-size: 16px;"
+                        Property="@(p => p.White ?? "...")" />
+                    <PropertyColumn
+                        Title="Black"
+                        Style="padding-top: 2px; padding-bottom: 2px; font-size: 16px;"
+                        Property="@(p => p.Black ?? ((p.White != null && !position.IsGameOver) ? "..." : string.Empty))" />
+                </FluentDataGrid>
+            </div>
+
+            <FluentProgress
+                Width="100%"
+                Stroke="ProgressStroke.Normal"
+                Value="@progressCurrent"
+                Max="@progressTotal">
+            </FluentProgress>
+
+            <FluentButton
+                IconStart="@(new Icons.Regular.Size16.Copy())"
+                OnClick="@CopyPgnToClipboard"
+                disabled="@(!moveList.Any())"
+                >Copy PGN</FluentButton>
+        </FluentStack>
     </FluentStack>
-</FluentStack>
 </FluentCard>
 
 @code {
