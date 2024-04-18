@@ -417,7 +417,7 @@
         position = Position.FromMoves(moves);
         validMoves.Clear();
 
-        PassTurn();
+        await PassTurnAsync();
     }
 
     private async Task NotateAsync(Move move, string notation, bool isLetter = true)
@@ -497,26 +497,23 @@
                 position = Position.FromMoves(moves);
 
                 progressCurrent = 0;
-                await InvokeAsync(StateHasChanged);
-                await Task.Delay(1);
+            }
 
-                PassTurn();
-            }
-            else
-            {
-                Console.WriteLine("Computer has no legal moves");
-            }
+            await PassTurnAsync();
         });
     }
 
-    private void PassTurn()
+    private async Task PassTurnAsync()
     {
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(1);
+
         var lastMove = position.Moves.LastOrDefault();
         if (lastMove is null) { return; }
 
         if (position.Moves.Count > 1000)
         {
-            _dialogService.ShowInfo("This goes for too long, the game abandoned.", "Draw");
+            await _dialogService.ShowInfoAsync("This goes for too long, the game abandoned.", "Draw");
             isGameOver = true;
             return;
         }
@@ -524,14 +521,14 @@
         if (lastMove.IsCheckmate)
         {
             var winner = lastMove.Piece.Color.ToString();
-            _dialogService.ShowInfo("Checkmate", $"{winner} won");
+            await _dialogService.ShowInfoAsync("Checkmate", $"{winner} won");
             isGameOver = true;
             return;
         }
 
         if (lastMove.IsStalemate)
         {
-            _dialogService.ShowInfo("Stalemate", "Draw");
+            await _dialogService.ShowInfoAsync("Stalemate", "Draw");
             isGameOver = true;
             return;
         }
@@ -600,8 +597,11 @@
     public async void OnDropEndAsync(FluentDragEventArgs<Coords> args)
     {
         // TODO: rewrite propertly
+        IPiece? piece = position.Board[args.Source.Item];
+        if (piece is null) { return; }
+
         currentMove = new Move(
-            piece: position.Board[args.Source.Item],
+            piece: piece,
             from: args.Source.Item,
             to: args.Target.Item
         );
