@@ -99,73 +99,81 @@
 <FluentCard Class="container">
     <FluentStack
         HorizontalAlignment="HorizontalAlignment.Center"
-        HorizontalGap="32">
+        HorizontalGap="16">
 
-        <div class="board">
-            @{
-                var files = Enumerable.Empty<int>();
-                var ranks = Enumerable.Empty<int>();
+        <FluentDragContainer TItem="Coords" OnDropEnd="OnDropEndAsync">
+            <div class="board">
+                @{
+                    var files = Enumerable.Empty<int>();
+                    var ranks = Enumerable.Empty<int>();
 
-                if (flipBoard)
-                {
-                    files = Enumerable.Range(0, 8).Reverse();
-                    ranks = Enumerable.Range(0, 8);
+                    if (flipBoard)
+                    {
+                        files = Enumerable.Range(0, 8).Reverse();
+                        ranks = Enumerable.Range(0, 8);
+                    }
+                    else
+                    {
+                        files = Enumerable.Range(0, 8);
+                        ranks = Enumerable.Range(0, 8).Reverse();
+                    }
                 }
-                else
+
+                @{ var lastMove = position.Moves.LastOrDefault(); }
+
+
+                @foreach (int file in files)
                 {
-                    files = Enumerable.Range(0, 8);
-                    ranks = Enumerable.Range(0, 8).Reverse();
-                }
-            }
-
-            @{ var lastMove = position.Moves.LastOrDefault(); }
-
-            @foreach (int file in files)
-            {
-                <div class="rank">
-                @foreach (int rank in ranks)
-                {
-                    var square = position.Board.Squares[file, rank];
-                    var cssClass = ((rank + file) % 2 == 0) ? "dark" : "light";
-
-                    if ((rank == currentMove?.From.Rank && file == currentMove?.From.File)
-                        || (lastMove?.From.Rank == rank && lastMove?.From.File == file)
-                        || (lastMove?.To.Rank == rank && lastMove?.To.File == file))
+                    <div class="rank">
+                    @foreach (int rank in ranks)
                     {
-                        cssClass += " selected";
-                    }
+                        var coords = new Coords(file, rank);
+                        var square = position.Board.Squares[file, rank];
+                        var cssClass = ((rank + file) % 2 == 0) ? "dark" : "light";
+                        var isDraggable = position.Board.Squares[file, rank]?.Color == position.ColorToMove;
 
-                    if ((lastMove?.From.Rank == rank && lastMove?.From.File == file)
-                        || (lastMove?.To.Rank == rank && lastMove?.To.File == file))
-                    {
-                        cssClass += " lastMove";
-                    }
-
-                    if (legalTargets.Any(x => x.Rank == rank && x.File == file))
+                        if ((rank == currentMove?.From.Rank && file == currentMove?.From.File)
+                            || (lastMove?.From.Rank == rank && lastMove?.From.File == file)
+                            || (lastMove?.To.Rank == rank && lastMove?.To.File == file))
                         {
-                            cssClass += " legalTarget";
+                            cssClass += " selected";
                         }
 
+                        if ((lastMove?.From.Rank == rank && lastMove?.From.File == file)
+                            || (lastMove?.To.Rank == rank && lastMove?.To.File == file))
+                        {
+                            cssClass += " lastMove";
+                        }
 
-                    if (square?.Kind == PieceKind.King && lastMove is not null && lastMove.Piece!.Color != square.Color)
-                    {
-                        if (lastMove.IsCheckmate)
+                        if (legalTargets.Any(x => x.Rank == rank && x.File == file))
+                            {
+                                cssClass += " legalTarget";
+                            }
+
+
+                        if (square?.Kind == PieceKind.King && lastMove is not null && lastMove.Piece!.Color != square.Color)
                         {
-                            cssClass += " checkmate";
+                            if (lastMove.IsCheckmate)
+                            {
+                                cssClass += " checkmate";
+                            }
+                            else if (lastMove.IsCheck)
+                            {
+                                cssClass += " check";
+                            }
                         }
-                        else if (lastMove.IsCheck)
-                        {
-                            cssClass += " check";
-                        }
+
+                        <FluentDropZone Item="@coords" Draggable="@isDraggable" Droppable="true">
+                            <div class="square @cssClass" @onclick="@(() => OnCellClickAsync(file, rank))">
+                                @(square?.Identifier.ToUpper() ?? string.Empty)
+                            </div>
+                        </FluentDropZone>
                     }
-
-                    <div class="square @cssClass" @onclick="@(() => OnCellClick(file, rank))">
-                        @(square?.Identifier.ToUpper() ?? string.Empty)
                     </div>
                 }
-                </div>
-            }
-        </div>
+            </div>
+
+        </FluentDragContainer>
 
         <FluentStack Orientation="Orientation.Vertical">
             <FluentStack Orientation="Orientation.Horizontal">
@@ -342,7 +350,7 @@
         _toastService.ShowInfo("Copied");
     }
 
-    private async Task OnCellClick(int file, int rank)
+    private async Task OnCellClickAsync(int file, int rank)
     {
         if (isGameOver) { return; }
 
@@ -587,5 +595,17 @@
     public void OnNewGameClick()
     {
         StartNewGame();
+    }
+
+    public async void OnDropEndAsync(FluentDragEventArgs<Coords> args)
+    {
+        // TODO: rewrite propertly
+        currentMove = new Move(
+            piece: position.Board[args.Source.Item],
+            from: args.Source.Item,
+            to: args.Target.Item
+        );
+
+        await OnCellClickAsync(args.Target.Item.File, args.Target.Item.Rank);
     }
 }
