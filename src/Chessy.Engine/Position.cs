@@ -219,7 +219,10 @@ public class Position
         }
     }
 
-    public async Task<Move?> FindBestMoveABAsync(PieceColor playerColor, int depth = 1)
+    public async Task<Move?> FindBestMoveABAsync(
+        PieceColor playerColor,
+        int depth = 1,
+        CancellationToken cancellationToken = default)
     {
         Console.WriteLine("Finding best move...");
         var moves = GetMoves(playerColor).ToArray();
@@ -246,7 +249,8 @@ public class Position
         var (bestMove, _) = await FindMoveABAsync(
             depth,
             isMaximising: playerColor == PieceColor.White,
-            isTopLevel: true);
+            isTopLevel: true,
+            cancellationToken:cancellationToken);
         sw.Stop();
 
         Console.WriteLine($"Nodes: {_nodesCounter / 1.0e+6:0.0}m ({_nodesCounter / sw.Elapsed.TotalSeconds / 1000.0:0.0}k / sec)");
@@ -262,8 +266,16 @@ public class Position
             && x.PromotionPieceKind == bestMove.PromotionPieceKind);
     }
 
-    public async Task<(Move? move, double score)> FindMoveABAsync(int depth, double alpha = double.MinValue, double beta = double.MaxValue, bool isMaximising = true, bool isTopLevel = true)
+    public async Task<(Move? move, double score)> FindMoveABAsync(
+        int depth,
+        double alpha = double.MinValue,
+        double beta = double.MaxValue,
+        bool isMaximising = true,
+        bool isTopLevel = true,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         if (depth == 0)
         {
             _nodesCounter++;
@@ -320,14 +332,15 @@ public class Position
                 {
                     MakeMove(move);
                     (_, moveScore) = await FindMoveABAsync(
-                        depth - 1, -beta, -alpha, !isMaximising, isTopLevel: false);
+                        depth - 1, -beta, -alpha, !isMaximising, isTopLevel: false,
+                        cancellationToken: cancellationToken);
                     UndoMove(move);
                 }
                 moveScore = -moveScore;
 
                 if (move.IsCastlingShort || move.IsCastlingLong)
                 {
-                    moveScore += 0.15;
+                    moveScore += 0.05;
                 }
 
                 if (moveScore > bestScore)

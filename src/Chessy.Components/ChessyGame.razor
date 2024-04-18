@@ -135,8 +135,9 @@
                         var coords = new Coords(file, rank);
                         var square = position.Board.Squares[file, rank];
                         var cssClass = ((rank + file) % 2 == 0) ? "dark" : "light";
-                        var isDraggable = position.Board.Squares[file, rank]?.Color == position.ColorToMove;
-                        var isDroppable = legalTargets.Contains(coords);
+                        var isDraggable = !isGameOver
+                            && position.Board.Squares[file, rank]?.Color == position.ColorToMove;
+                        var isDroppable = !isGameOver && legalTargets.Contains(coords);
                         if (coords == draggingFrom)
                         {
                             cssClass += " dragging";
@@ -185,7 +186,7 @@
             <FluentStack Orientation="Orientation.Horizontal">
                 <FluentButton
                     IconStart="@(new Icons.Regular.Size20.Chess())"
-                    OnClick="OnNewGameClick">New game</FluentButton>
+                    OnClick="OnNewGameClickAsync">New game</FluentButton>
 
                 <FluentButton
                     IconStart="@(new Icons.Regular.Size16.ArrowRepeatAll())"
@@ -204,7 +205,7 @@
                         TOption="Option<string>"
                         OptionText="@(x => x.Text)"
                         OptionValue="@(x => x.Value)"
-                        ValueChanged="OnWhitePlayerChange"
+                        ValueChanged="OnWhitePlayerChangeAsync"
                         Value="@WhitePlayer">
                     </FluentSelect>
                 </div>
@@ -216,7 +217,7 @@
                         TOption="Option<string>"
                         OptionText="@(x => x.Text)"
                         OptionValue="@(x => x.Value)"
-                        ValueChanged="OnBlackPlayerChange"
+                        ValueChanged="OnBlackPlayerChangeAsync"
                         Value="@BlackPlayer">
                     </FluentSelect>
                 </div>
@@ -282,6 +283,10 @@
 
     bool isGameOver = false;
 
+    bool isComputerThinking = false;
+
+    CancellationTokenSource? cts = null;
+
     string PgnText
     {
         get
@@ -345,11 +350,11 @@
 
     private ElementReference moveListElement { get; set; } = new();
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        base.OnInitialized();
+        await base.OnInitializedAsync();
 
-        StartNewGame();
+        await StartNewGameAsync();
     }
 
     private async Task CopyPgnToClipboard()
@@ -365,7 +370,11 @@
         if (currentMove is null)
         {
             IPiece? piece = position.Board.Squares[file, rank];
-            if (piece is not null && piece?.Color == position.ColorToMove)
+
+            if (piece is not null
+                && piece!.Color == position.ColorToMove
+                && ((piece!.Color == PieceColor.White && whitePlayer == 0))
+                    || (piece!.Color == PieceColor.Black && blackPlayer == 0))
             {
                 currentMove = new Move(piece, new Coords(file, rank), new Coords(-1, -1));
             }
@@ -460,11 +469,10 @@
         await ScrollMoveListAsync();
     }
 
-    private void ComputerMove(PieceColor playerColor)
+    private async Task ComputerMoveAsync(PieceColor playerColor)
     {
         Console.WriteLine($"Computer move for {playerColor}");
-        Task.Run(async () =>
-        {
+
             Console.WriteLine("Thinking task started...");
             Position positionCopy = Position.FromMoves(position.Moves);
             progressTotal = 1;
@@ -482,7 +490,27 @@
 
             positionCopy.FindMoveProgress += OnProgressChange;
             int aiLevel = playerColor == PieceColor.White ? whitePlayer : blackPlayer;
-            Move? computerMove = await positionCopy.FindBestMoveABAsync(playerColor, aiLevel);
+
+            Move? computerMove = null;
+            cts = new CancellationTokenSource();
+            try
+            {
+                isComputerThinking = true;
+                computerMove = await positionCopy.FindBestMoveABAsync(playerColor, aiLevel, cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                progressCurrent = 0;
+                await InvokeAsync(StateHasChanged);
+                return;
+            }
+            finally
+            {
+                cts.Dispose();
+                cts = null;
+                isComputerThinking = false;
+            }
+
             positionCopy.FindMoveProgress -= OnProgressChange;
 
             if (computerMove is not null)
@@ -508,7 +536,6 @@
             }
 
             await PassTurnAsync();
-        });
     }
 
     private async Task PassTurnAsync()
@@ -551,27 +578,29 @@
 
         if (currentPlayer != 0)
         {
-            ComputerMove(position.ColorToMove);
+            await ComputerMoveAsync(position.ColorToMove);
         }
     }
 
-    private void OnWhitePlayerChange(string value)
+    private async Task OnWhitePlayerChangeAsync(string value)
     {
+        await InterruptComputerThinkingAsync();
         WhitePlayer = value;
 
         if (whitePlayer != 0 && position.ColorToMove == PieceColor.White)
         {
-            ComputerMove(PieceColor.White);
+            await ComputerMoveAsync(PieceColor.White);
         }
     }
 
-    private void OnBlackPlayerChange(string value)
+    private async Task OnBlackPlayerChangeAsync(string value)
     {
+        await InterruptComputerThinkingAsync();
         BlackPlayer = value;
 
         if (blackPlayer != 0 && position.ColorToMove == PieceColor.Black)
         {
-            ComputerMove(PieceColor.Black);
+            await ComputerMoveAsync(PieceColor.Black);
         }
     }
 
@@ -580,8 +609,9 @@
         await _js.InvokeVoidAsync("scrollElementToBottom", moveListElement);
     }
 
-    public void StartNewGame()
+    public async Task StartNewGameAsync()
     {
+        await InterruptComputerThinkingAsync();
         position.ResetToStartingPosition();
         moveList.Clear();
         isGameOver = false;
@@ -593,13 +623,13 @@
         }
         else
         {
-            ComputerMove(position.ColorToMove);
+            await ComputerMoveAsync(position.ColorToMove);
         }
     }
 
-    public void OnNewGameClick()
+    public async Task OnNewGameClickAsync()
     {
-        StartNewGame();
+        await StartNewGameAsync();
     }
 
     private void OnDragStart(FluentDragEventArgs<Coords> args)
@@ -626,5 +656,25 @@
         currentMove.To = args.Target.Item;
 
         await OnCellClickAsync(args.Target.Item.File, args.Target.Item.Rank);
+    }
+
+    private async Task InterruptComputerThinkingAsync()
+    {
+        if (!isComputerThinking) { return; }
+
+        Trace.Assert(cts is not null);
+        cts?.Cancel();
+
+        int steps = 10;
+        while (isComputerThinking)
+        {
+            steps--;
+            if (steps < 0)
+            {
+                throw new Exception("Timeout while waiting computer thinking interruption");
+            }
+
+            await Task.Delay(50);
+        }
     }
 }
