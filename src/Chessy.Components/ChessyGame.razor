@@ -506,7 +506,7 @@
             }
             finally
             {
-                cts.Dispose();
+                cts?.Dispose();
                 cts = null;
                 isComputerThinking = false;
             }

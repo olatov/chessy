@@ -19,6 +19,16 @@ public record Board
         set => Squares[coords.File, coords.Rank] = value;
     }
 
+    private double[,] _pieceBonusTable = new double[8, 8];
+
+    private double[,] _pawnBonusTable = new double[8, 8];
+
+    public Board()
+    {
+        FillPeceBonusTable();
+        FillPawnBounsTable();
+    }
+
     public IEnumerable<Coords> GetPiecesCoords(PieceColor color)
     {
         foreach (var file in Enumerable.Range(0, 8))
@@ -114,27 +124,52 @@ public record Board
                 foreach (var rank in Enumerable.Range(0, 8))
                 {
                     var piece = Squares[file, rank];
-                    if (piece is not null)
+                    if (piece is null) { continue; }
+
+                    double value = piece.GetValue();
+                    result += value;
+                    int sign = Math.Sign(value);
+
+                    if (piece.Kind != PieceKind.Pawn)
                     {
-                        double value = piece.GetValue();
-                        result += value;
-                        int sign = Math.Sign(value);
-                        if (piece.Kind != PieceKind.Pawn)
-                        {
-                            result += (4 - Math.Abs(3.5 - file)) * 0.04 * sign
-                                    + (4 - Math.Abs(3.5 - rank)) * 0.04 * sign;
-                        }
-                        else
-                        {
-                            result += (piece.Color == PieceColor.White)
-                                ? (rank       * 0.05 + 0.02 * Math.Abs(3.5 - file)) * sign
-                                : ((7 - rank) * 0.05 + 0.03 * Math.Abs(3.5 - file)) * sign;
-                        }
+                        result += _pieceBonusTable[file, rank] * sign;
+                    }
+                    else
+                    {
+                        result += (piece.Color == PieceColor.White)
+                            ? _pawnBonusTable[file, rank]
+                            : -_pawnBonusTable[file, 7 - rank];
                     }
                 }
             }
 
             return result;
+        }
+    }
+
+    private void FillPeceBonusTable()
+    {
+        for (var file = 0; file < 8; file++)
+        {
+            for (var rank = 0; rank < 8; rank++)
+            {
+                _pieceBonusTable[file, rank] =
+                    (8 - Math.Abs(3.5 - file) * 0.5 - Math.Abs(3.5 - rank) * 2) * 0.05
+                    + (Random.Shared.NextDouble() * 0.01 - 0.005);
+            }
+        }
+    }
+
+    private void FillPawnBounsTable()
+    {
+        for (var rank = 0; rank < 8; rank++)
+        {
+            for (var file = 0; file < 8; file++)
+            {
+                _pawnBonusTable[file, rank] =
+                    (4 - Math.Abs(3.5 - file) + rank * 3) * 0.02
+                    + (Random.Shared.NextDouble() * 0.01 - 0.005);
+            }
         }
     }
 }
