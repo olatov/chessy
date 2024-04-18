@@ -46,6 +46,7 @@
 
   .selected-square {
       background-color: rgb(134, 254, 55) !important;
+      color: gray;
   }
 
   .lastMove {
@@ -53,7 +54,7 @@
   }
 
   .legalTarget {
-      background-color: rgb(179, 253, 141) !important; /* Modified color */
+      background-color: rgb(179, 253, 141) !important;
   }
 
   .check {
@@ -87,10 +88,11 @@
   .grid {
       max-height: 18rem;
       overflow-y: auto;
+      scrollbar-width: none;
   }
 
   .grid table {
-      min-width: 100%;
+    min-width: 100%;
     font-size: 24px;
   }
 
@@ -101,7 +103,10 @@
         HorizontalAlignment="HorizontalAlignment.Center"
         HorizontalGap="16">
 
-        <FluentDragContainer TItem="Coords" OnDropEnd="OnDropEndAsync">
+        <FluentDragContainer TItem="Coords"
+            OnDragStart="OnDragStart"
+            OnDropEnd="OnDropEndAsync">
+
             <div class="board">
                 @{
                     var files = Enumerable.Empty<int>();
@@ -131,25 +136,26 @@
                         var square = position.Board.Squares[file, rank];
                         var cssClass = ((rank + file) % 2 == 0) ? "dark" : "light";
                         var isDraggable = position.Board.Squares[file, rank]?.Color == position.ColorToMove;
+                        var isDroppable = legalTargets.Contains(coords);
+                        if (coords == draggingFrom)
+                        {
+                            cssClass += " dragging";
+                        }
 
-                        if ((rank == currentMove?.From.Rank && file == currentMove?.From.File)
-                            || (lastMove?.From.Rank == rank && lastMove?.From.File == file)
-                            || (lastMove?.To.Rank == rank && lastMove?.To.File == file))
+                        if (coords == currentMove?.From)
                         {
                             cssClass += " selected-square";
                         }
 
-                        if ((lastMove?.From.Rank == rank && lastMove?.From.File == file)
-                            || (lastMove?.To.Rank == rank && lastMove?.To.File == file))
+                        if (coords == lastMove?.From || coords == lastMove?.To)
                         {
                             cssClass += " lastMove";
                         }
 
-                        if (legalTargets.Any(x => x.Rank == rank && x.File == file))
-                            {
-                                cssClass += " legalTarget";
-                            }
-
+                        if (legalTargets.Contains(coords))
+                        {
+                            cssClass += " legalTarget";
+                        }
 
                         if (square?.Kind == PieceKind.King && lastMove is not null && lastMove.Piece!.Color != square.Color)
                         {
@@ -163,7 +169,7 @@
                             }
                         }
 
-                        <FluentDropZone Item="@coords" Draggable="@isDraggable" Droppable="true">
+                        <FluentDropZone Item="@coords" Draggable="@isDraggable" Droppable="@isDroppable">
                             <div class="square @cssClass" @onclick="@(() => OnCellClickAsync(file, rank))">
                                 @(square?.Identifier.ToUpper() ?? string.Empty)
                             </div>
@@ -322,6 +328,8 @@
 
     int progressCurrent = 0;
     int progressTotal = 1;
+
+    Coords? draggingFrom => currentMove?.From;
 
     IEnumerable<Option<string>> PlayerOptions = new Option<string>[]
     {
@@ -594,17 +602,26 @@
         StartNewGame();
     }
 
-    public async void OnDropEndAsync(FluentDragEventArgs<Coords> args)
+    private void OnDragStart(FluentDragEventArgs<Coords> args)
     {
         // TODO: rewrite propertly
+
         IPiece? piece = position.Board[args.Source.Item];
         if (piece is null) { return; }
 
         currentMove = new Move(
             piece: piece,
             from: args.Source.Item,
-            to: args.Target.Item
+            to: new Coords(-1, -1)
         );
+
+        StateHasChanged();
+    }
+
+    private async void OnDropEndAsync(FluentDragEventArgs<Coords> args)
+    {
+        // TODO: rewrite propertly
+        currentMove.To = args.Target.Item;
 
         await OnCellClickAsync(args.Target.Item.File, args.Target.Item.Rank);
     }
