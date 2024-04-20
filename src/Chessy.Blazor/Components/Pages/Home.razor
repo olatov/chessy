@@ -2,5 +2,21 @@
 
 @* Human vs Comp lvl 5 by default *@
 <ChessyGame
-    WhitePlayer="0"
-    BlackPlayer="5" />
+    WhitePlayer="@whitePlayer"
+    BlackPlayer="blackPlayer" />
+
+@code {
+    private Player whitePlayer = new()
+    {
+        Name = "White",
+        Type = PlayerType.Human,
+        ComputerLevel = null,
+    };
+
+    private Player blackPlayer = new()
+    {
+        Name = "Black",
+        Type = PlayerType.Computer,
+        ComputerLevel = 5,
+    };
+}

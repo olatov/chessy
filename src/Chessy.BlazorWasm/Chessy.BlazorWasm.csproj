@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Chessy.Components\Chessy.Components.csproj" />
+    <ProjectReference Include="..\Chessy.Engine\Chessy.Engine.csproj" />
   </ItemGroup>
 
 </Project>

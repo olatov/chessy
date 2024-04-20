@@ -1,0 +1,83 @@
+<FluentStack>
+    <FluentSelect
+        Width="8rem;"
+        Label="@Label"
+        Items="PlayerOptions"
+        TOption="Option<string>"
+        OptionText="@(x => x.Text)"
+        OptionValue="@(x => x.Value)"
+        ValueChanged="OnTypeChangeAsync"
+        Value="@selectedType" />
+
+    @if (Player.IsComputer)
+    {
+        <FluentSelect
+            Width="auto;"
+            Label="Level:"
+            Items="LevelOptions"
+            TOption="Option<int>"
+            OptionText="@(x => x.Value.ToString())"
+            OptionValue="@(x => x.Value.ToString())"
+            ValueChanged="OnLevelChangeAsync"
+            Value="@selectedLevel" />
+    }
+</FluentStack>
+
+
+@code {
+    [Parameter]
+    public string Label { get; set; } = string.Empty;
+
+    [Parameter]
+    public Player Player { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<Player> OnChange { get; set; }
+
+    private string selectedType = string.Empty;
+
+    private string selectedLevel = "5";
+
+    IEnumerable<Option<string>> PlayerOptions = new Option<string>[]
+    {
+        new() { Value = PlayerType.Human.ToString(), Text = "Human" },
+        new() { Value = PlayerType.Computer.ToString(), Text = "Computer" },
+    };
+
+    IEnumerable<Option<int>> LevelOptions = Enumerable.Range(1, 7)
+        .Select(x => new Option<int> { Value = x, Text = x });
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+
+        selectedType = Player.Type.ToString();
+        selectedLevel = Player.ComputerLevel?.ToString() ?? "5";
+    }
+
+    private async Task OnTypeChangeAsync(string value)
+    {
+        Player.Type = value switch
+        {
+            "Human" => PlayerType.Human,
+            "Computer" => PlayerType.Computer,
+            _ => throw new ArgumentException(value),
+        };
+
+        if (Player.IsComputer && !Player.ComputerLevel.HasValue)
+        {
+            Player.ComputerLevel = 5;
+        }
+
+        await OnChange.InvokeAsync(Player);
+    }
+
+    private async Task OnLevelChangeAsync(string value)
+    {
+        Player.ComputerLevel = int.Parse(value);
+        await OnChange.InvokeAsync(Player);
+    }
+}
+
+
+
