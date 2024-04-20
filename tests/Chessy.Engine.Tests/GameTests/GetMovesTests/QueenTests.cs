@@ -1,8 +1,8 @@
-namespace Chessy.Engine.Tests.PositionTests.GetMovesTests;
+namespace Chessy.Engine.Tests.GameTests.GetMovesTests;
 
 public sealed class QueenTests
 {
-    private Position _sut = new();
+    private Game _sut = new();
 
     public QueenTests()
     {

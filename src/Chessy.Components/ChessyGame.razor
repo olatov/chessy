@@ -39,12 +39,12 @@
         HorizontalGap="16">
 
         <BoardDisplay AlwaysPromoteToQueen="@alwaysPromoteToQueen"
-            Board="@position.Board"
+            Board="@game.Board"
             Disabled="@isBoardInputDisabled"
-            CurrentPlayer="@position.ColorToMove"
+            CurrentPlayer="@game.ColorToMove"
             Flip="@flipBoard"
             OnMakeMove="@OnMakeMoveAsync"
-            LastMove="@position?.Moves?.LastOrDefault()"
+            LastMove="@game?.Moves?.LastOrDefault()"
             ValidMoves="@validMoves"
         />
 
@@ -117,8 +117,8 @@
     private bool isGameOver = false;
 
     private bool isCurrentPlayerHuman =>
-        (position.ColorToMove == PieceColor.White && WhitePlayer.IsHuman)
-        || (position.ColorToMove == PieceColor.Black && BlackPlayer.IsHuman);
+        (game.ColorToMove == PieceColor.White && WhitePlayer.IsHuman)
+        || (game.ColorToMove == PieceColor.Black && BlackPlayer.IsHuman);
 
     private bool isBoardInputDisabled => !isCurrentPlayerHuman || isGameOver;
 
@@ -147,7 +147,7 @@
         }
     }
 
-    private Position position = new();
+    private Game game = new();
 
     private IList<string> notation = new List<string>();
 
@@ -182,9 +182,11 @@
             .First(x => validMoves.Count(y => y.GetNotationVariants().Contains(x)) == 1);
         await NotateAsync(move, shortNotation);
 
-        var moves = position.Moves;
+        @* var moves = game.Moves;
         moves.Add(move);
-        position = Position.FromMoves(moves);
+        game = Position.FromMoves(moves); *@
+        game.MakeMove(move);
+        game.Moves.Add(move); // TODO
         validMoves.Clear();
 
         await PassTurnAsync();
@@ -227,7 +229,6 @@
         Console.WriteLine($"Computer move for {playerColor}");
 
             Console.WriteLine("Thinking task started...");
-            Position positionCopy = Position.FromMoves(position.Moves);
             progressTotal = 1;
             progressCurrent = 0;
             await InvokeAsync(StateHasChanged);
@@ -241,7 +242,8 @@
                 await Task.Delay(1);
             }
 
-            positionCopy.FindMoveProgress += OnProgressChange;
+            var gameCopy = Game.FromMoves(game.Moves);
+            gameCopy.FindMoveProgress += OnProgressChange;
 
             var player = playerColor == PieceColor.White ? WhitePlayer : BlackPlayer;
             Trace.Assert(player.IsComputer);
@@ -253,7 +255,7 @@
             try
             {
                 isComputerThinking = true;
-                computerMove = await positionCopy.FindBestMoveABAsync(playerColor, aiLevel, cts.Token);
+                computerMove = await gameCopy.FindBestMoveABAsync(playerColor, aiLevel, cts.Token);
             }
             catch (OperationCanceledException)
             {
@@ -268,7 +270,7 @@
                 isComputerThinking = false;
             }
 
-            positionCopy.FindMoveProgress -= OnProgressChange;
+            gameCopy.FindMoveProgress -= OnProgressChange;
 
             if (computerMove is not null)
             {
@@ -277,17 +279,15 @@
                 await InvokeAsync(StateHasChanged);
                 await Task.Delay(1);
 
-                IEnumerable<Move> validMoves = positionCopy.GetMoves(playerColor).ToList();
-
-                var moves = positionCopy.Moves;
-                moves.Add(computerMove);
+                IEnumerable<Move> validMoves = gameCopy.GetMoves(playerColor).ToList();
 
                 var shortNotation = computerMove.GetNotationVariants()
                     .First(x => validMoves.Count(y => y.GetNotationVariants().Contains(x)) == 1);
 
                 await NotateAsync(computerMove, shortNotation);
 
-                position = Position.FromMoves(moves);
+                game.MakeMove(computerMove);
+                game.Moves.Add(computerMove);
 
                 progressCurrent = 0;
             }
@@ -300,21 +300,21 @@
         await InvokeAsync(StateHasChanged);
         await Task.Delay(1);
 
-        var lastMove = position.Moves.LastOrDefault();
+        var lastMove = game.Moves.LastOrDefault();
         if (lastMove is null) { return; }
 
-        if (position.Moves.Count > 1000)
+        if (game.Moves.Count > 1000)
         {
             await _dialogService.ShowInfoAsync("This goes for too long, the game abandoned.", "Draw");
             isGameOver = true;
             return;
         }
 
-        var currentPlayer = position.ColorToMove == PieceColor.White ? WhitePlayer : BlackPlayer;
+        game.ColorToMove = game.ColorToMove.OpponentColor();
+        var currentPlayer = game.ColorToMove == PieceColor.White ? WhitePlayer : BlackPlayer;
 
         var sw = Stopwatch.StartNew();
-        var positionCopy = Position.FromMoves(position.Moves);
-        validMoves = positionCopy.GetMoves(position.ColorToMove).ToList();
+        validMoves = Game.FromMoves(game.Moves).GetMoves(game.ColorToMove).ToList();
         if (!validMoves.Any())
         {
             if (lastMove.IsCheck)
@@ -335,7 +335,7 @@
 
         if (currentPlayer.IsComputer)
         {
-            await ComputerMoveAsync(position.ColorToMove);
+            await ComputerMoveAsync(game.ColorToMove);
         }
     }
 
@@ -344,7 +344,7 @@
         await InterruptComputerThinkingAsync();
         WhitePlayer = value;
 
-        if (WhitePlayer.IsComputer && position.ColorToMove == PieceColor.White)
+        if (WhitePlayer.IsComputer && game.ColorToMove == PieceColor.White)
         {
             await ComputerMoveAsync(PieceColor.White);
         }
@@ -355,7 +355,7 @@
         await InterruptComputerThinkingAsync();
         BlackPlayer = value;
 
-        if (BlackPlayer.IsComputer && position.ColorToMove == PieceColor.Black)
+        if (BlackPlayer.IsComputer && game.ColorToMove == PieceColor.Black)
         {
             await ComputerMoveAsync(PieceColor.Black);
         }
@@ -369,7 +369,9 @@
     public async Task StartNewGameAsync()
     {
         await InterruptComputerThinkingAsync();
-        position.ResetToStartingPosition();
+        game.ResetToStartingPosition();
+        game.WhitePlayer = WhitePlayer;
+        game.BlackPlayer = BlackPlayer;
         moveList.Clear();
         isGameOver = false;
         moveList.Add(new MoveListItem(1));
@@ -377,11 +379,11 @@
         switch (WhitePlayer.Type)
         {
             case PlayerType.Human:
-                validMoves = position.GetMoves(PieceColor.White).ToList();
+                validMoves = game.GetMoves(PieceColor.White).ToList();
                 break;
 
             case PlayerType.Computer:
-                await ComputerMoveAsync(position.ColorToMove);
+                await ComputerMoveAsync(game.ColorToMove);
                 break;
 
             case PlayerType.RemoteGuest:

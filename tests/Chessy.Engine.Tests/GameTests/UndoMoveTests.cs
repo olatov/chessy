@@ -1,8 +1,8 @@
-namespace Chessy.Engine.Tests.PositionTests;
+namespace Chessy.Engine.Tests.GameTests;
 
 public sealed class UndoMoveTests
 {
-    private readonly Position _sut = new Position();
+    private readonly Game _sut = new Game();
 
     public UndoMoveTests()
     {

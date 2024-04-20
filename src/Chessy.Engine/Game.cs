@@ -1,13 +1,16 @@
 ﻿using System.Diagnostics;
-using System.Reflection;
 using Chessy.Engine.Events;
 using Chessy.Engine.Extensions;
 using Chessy.Engine.Pieces;
 
 namespace Chessy.Engine;
 
-public class Position
+public class Game
 {
+    public Player WhitePlayer { get; set; } = new() { Type = PlayerType.Human };
+
+    public Player BlackPlayer { get; set; } = new() { Type = PlayerType.Human };
+
     public Board Board { get; set; } = new Board();
 
     public IList<Move> Moves { get; set; } = new List<Move>();
@@ -34,9 +37,9 @@ public class Position
 
     private Stack<Coords?> EnPassantTargets { get; set; } = new();
 
-    public static Position FromMoves(IEnumerable<Move> moves)
+    public static Game FromMoves(IEnumerable<Move> moves)
     {
-        var result = new Position();
+        var result = new Game();
         result.ResetToStartingPosition();
         foreach (var move in moves)
         {

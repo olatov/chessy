@@ -7,7 +7,7 @@ internal static class Program
 {
     static void Main(string[] args)
     {
-        var position = new Position();
+        var position = new Game();
         position.ResetToStartingPosition();
 
         var moves = position.GetMoves(PieceColor.White);
