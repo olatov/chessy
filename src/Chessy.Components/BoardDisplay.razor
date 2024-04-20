@@ -1,0 +1,262 @@
+@using System.Diagnostics
+@using System.Text
+
+@inject IDialogService _dialogService;
+
+<style>
+    .board {
+        display: grid;
+        grid-template-columns: repeat(8, 86px);
+        grid-template-rows: repeat(8, 86px);
+        border: solid gray;
+        user-select: none;
+    }
+
+    .square {
+        width: 86px;
+        height: 86px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 96px;
+        cursor: pointer;
+        opacity: 1.0;
+        border: none;
+        color: black;
+        font-family: 'FreeSerif', serif;
+    }
+
+    .selected-square {
+        background-color: rgb(134, 254, 55) !important;
+        color: gray;
+    }
+
+    .last-move {
+        background-color: rgb(255, 242, 5) !important;
+    }
+
+    .legal-destination {
+        background-color: rgb(179, 253, 141) !important;
+    }
+
+    .check {
+        background-color: lightcoral !important;
+    }
+
+    .checkmate {
+        background-color: darkred !important;
+    }
+
+    .light {
+        background-color: white;
+        filter: brightness(90%);
+    }
+
+    .dark {
+        background-color: white;
+        filter: brightness(82%);
+    }
+</style>
+
+
+<FluentDragContainer TItem="Coords" OnDragStart="OnDragStart" OnDropEnd="OnDropEndAsync">
+
+    <div class="board">
+        @{
+            (IEnumerable<int> files, IEnumerable<int> ranks) = ([], []);
+
+            if (Flip)
+            {
+                files = Enumerable.Range(0, 8).Reverse();
+                ranks = Enumerable.Range(0, 8);
+            }
+            else
+            {
+                files = Enumerable.Range(0, 8);
+                ranks = Enumerable.Range(0, 8).Reverse();
+            }
+        }
+
+        @foreach (int file in files)
+        {
+            <div class="rank">
+                @foreach (int rank in ranks)
+                {
+                    var coords = new Coords(file, rank);
+
+                    <FluentDropZone Item="@coords"
+                        Draggable="@IsDraggable(coords)"
+                        Droppable="@IsDroppable(coords)">
+
+                        <div class="square @GetSquareCssClass(coords)"
+                            @onclick="@(() => OnCellClickAsync(coords))">
+
+                            @GetSquareIdentifier(coords)
+                        </div>
+                    </FluentDropZone>
+                }
+            </div>
+        }
+    </div>
+
+</FluentDragContainer>
+
+
+@code {
+    [Parameter]
+    public Board Board { get; set; } = new();
+
+    [Parameter]
+    public bool Disabled { get; set; } = false;
+
+    [Parameter]
+    public bool Flip { get; set; } = false;
+
+    [Parameter]
+    public Move? LastMove { get; set; } = null;
+
+    [Parameter]
+    public PieceColor? CurrentPlayer { get; set; } = null;
+
+    [Parameter]
+    public IEnumerable<Move> ValidMoves { get; set; } = [];
+
+    [Parameter]
+    public bool AlwaysPromoteToQueen { get; set; } = true;
+
+    [Parameter]
+    public EventCallback<Move> OnMakeMove { get; set; } = new();
+
+    private Coords? _draggingFrom = null;
+
+    private Move? _recordedMove = null;
+
+    private IEnumerable<Coords> _legalSources => ValidMoves.Select(x => x.From);
+
+    private IEnumerable<Coords> _legalDestinations =>
+        _recordedMove?.From is not null
+            ? ValidMoves.Where(x => x.From == _recordedMove.From).Select(x => x.To)
+            : [];
+
+    private bool IsDraggable(Coords coords) => !Disabled && _legalSources.Contains(coords);
+
+    private bool IsDroppable(Coords coords) => !Disabled && _legalDestinations.Contains(coords);
+
+    private string GetSquareCssClass(Coords coords)
+    {
+        var square = Board.Squares[coords.File, coords.Rank];
+
+        var result = new StringBuilder();
+        var cssClass = result.Append(
+            (coords.File + coords.Rank) % 2 == 0 ? "dark" : "light" );
+
+        if (coords == _draggingFrom)
+        {
+            result.Append(" dragging");
+        }
+
+        if (coords == _recordedMove?.From)
+        {
+            result.Append(" selected-square");
+        }
+
+        if (coords == LastMove?.From || coords == LastMove?.To)
+        {
+            result.Append(" last-move");
+        }
+
+        if (_legalDestinations.Contains(coords))
+        {
+            result.Append(" legal-destination");
+        }
+
+        if (square?.Kind == PieceKind.King
+        && LastMove?.IsCheck == true
+        && LastMove.Piece!.Color != square.Color)
+        {
+            result.Append(LastMove.IsCheckmate ? " checkmate" : " check");
+        }
+
+        return result.ToString();
+    }
+
+    private string GetSquareIdentifier(Coords coords) =>
+    Board.Squares[coords.File, coords.Rank]?.Identifier.ToUpper() ?? string.Empty;
+
+    private async Task OnCellClickAsync(Coords coords)
+    {
+        if (_recordedMove is null)
+        {
+            RecordMoveFrom(coords);
+            return;
+        }
+
+        await RecordMoveToAsync(coords);
+    }
+
+    private void OnDragStart(FluentDragEventArgs<Coords> args)
+    {
+        RecordMoveFrom(args.Source.Item);
+        StateHasChanged();
+    }
+
+    private async void OnDropEndAsync(FluentDragEventArgs<Coords> args)
+    {
+        await RecordMoveToAsync(args.Target.Item);
+    }
+
+    private void RecordMoveFrom(Coords coords)
+    {
+        if (!_legalSources.Contains(coords)) { return; }
+
+        var piece = Board.Squares[coords.File, coords.Rank];
+        Trace.Assert(piece is not null);
+
+        _recordedMove = new Move(piece, coords, new Coords(-1, -1));
+    }
+
+    private async Task RecordMoveToAsync(Coords coords)
+    {
+        if (_recordedMove is null) { return; }
+
+        _recordedMove.To = coords;
+        var matchingMoves = ValidMoves.Where(x =>
+        x.From == _recordedMove.From
+        && x.To == _recordedMove.To);
+
+        if (!matchingMoves.Any())
+        {
+            _recordedMove = null;
+            return;
+        }
+
+        if (_recordedMove.Piece!.Kind == PieceKind.Pawn && (_recordedMove.To.Rank is 0 or 7))
+        {
+            if (AlwaysPromoteToQueen)
+            {
+                _recordedMove.PromotionPieceKind = PieceKind.Queen;
+            }
+            else
+            {
+                var dialog = await _dialogService.ShowDialogAsync<PromotionDialog>(
+                PieceKind.Queen,
+                new DialogParameters
+                    {
+                        SecondaryActionEnabled = false,
+                    });
+                var result = await dialog.Result;
+                _recordedMove.PromotionPieceKind = (result.Data as PieceKind?) ?? PieceKind.Queen;
+            }
+
+            matchingMoves = matchingMoves.Where(x => x.PromotionPieceKind == _recordedMove.PromotionPieceKind);
+        }
+
+        var matchingMove = matchingMoves.Single();
+        _recordedMove = null;
+
+        if (matchingMove is not null)
+        {
+            await OnMakeMove.InvokeAsync(matchingMove);
+        }
+    }
+}
