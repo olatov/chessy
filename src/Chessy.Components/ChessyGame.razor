@@ -31,18 +31,6 @@
   .reversed {
       flex-direction: column-reverse !important;
   }
-
-  .grid {
-      max-height: 18rem;
-      overflow-y: auto;
-      scrollbar-width: none;
-  }
-
-  .grid table {
-    min-width: 100%;
-    font-size: 24px;
-  }
-
 </style>
 
 <FluentCard Class="container">
@@ -108,24 +96,7 @@
             <FluentDivider Style="width: 100%;" Orientation=Orientation.Horizontal Role="DividerRole.Separator"/>
 
             <div class="grid" @ref="moveListElement">
-                <FluentDataGrid Items="@moveTable"
-                    Class="moveList"
-                    RowStyle="@((r) => "border: none;")"
-                    GridTemplateColumns="2fr 3fr 3fr">
-
-                    <PropertyColumn
-                        Title=""
-                        Style="padding-top: 2px; padding-bottom: 2px; font-size: 16px;"
-                        Property="@(p => $"{p.Number}.")"/>
-                    <PropertyColumn
-                        Title="White"
-                        Style="padding-top: 2px; padding-bottom: 2px; font-size: 16px;"
-                        Property="@(p => p.White ?? "...")" />
-                    <PropertyColumn
-                        Title="Black"
-                        Style="padding-top: 2px; padding-bottom: 2px; font-size: 16px;"
-                        Property="@(p => p.Black ?? ((p.White != null && !position!.IsGameOver) ? "..." : string.Empty))" />
-                </FluentDataGrid>
+                <MoveListGrid Moves="@moveList" />
             </div>
 
             <FluentProgress
@@ -153,11 +124,7 @@
     public string BlackPlayer { get; set; }= "5";
     int blackPlayer => int.Parse(BlackPlayer);
 
-    record MoveListItem(int Number, string? White = null, string? Black = null);
-
     List<MoveListItem> moveList = new();
-
-    IQueryable<MoveListItem> moveTable => moveList.AsQueryable();
 
     bool isGameOver = false;
 
@@ -176,7 +143,7 @@
         get
         {
             var sb = new StringBuilder();
-            foreach (var item in moveTable)
+            foreach (var item in moveList)
             {
                 if (item.White is not null)
                 {

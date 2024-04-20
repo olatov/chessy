@@ -1,0 +1,41 @@
+<style>
+  .grid {
+      max-height: 18rem;
+      overflow-y: auto;
+      scrollbar-width: none;
+  }
+
+  .grid table {
+    min-width: 100%;
+    font-size: 24px;
+  }
+</style>
+
+<FluentDataGrid Items="@_moveTable"
+    Class="moveList"
+    RowStyle="@((r) => "border: none;")"
+    GridTemplateColumns="2fr 3fr 3fr">
+
+    <PropertyColumn
+        Title=""
+        Style="padding-top: 2px; padding-bottom: 2px; font-size: 16px;"
+        Property="@(p => $"{p.Number}.")"/>
+    <PropertyColumn
+        Title="White"
+        Style="padding-top: 2px; padding-bottom: 2px; font-size: 16px;"
+        Property="@(p => p.White ?? "...")" />
+    <PropertyColumn
+        Title="Black"
+        Style="padding-top: 2px; padding-bottom: 2px; font-size: 16px;"
+        Property="@(p => p.Black ?? ((p.White != null && !GameOver) ? "..." : string.Empty))" />
+</FluentDataGrid>
+
+@code {
+    [Parameter]
+    public IEnumerable<MoveListItem> Moves { get; set; } = [];
+
+    [Parameter]
+    public bool GameOver { get; set; } = false;
+
+    private IQueryable<MoveListItem> _moveTable => Moves.AsQueryable();
+}
