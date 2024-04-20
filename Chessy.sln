@@ -17,6 +17,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{00481360
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chessy.Engine.Tests", "tests\Chessy.Engine.Tests\Chessy.Engine.Tests.csproj", "{F761F47A-D029-49DA-B5BB-F8EB80746CE0}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{E79354AA-C404-4345-A7D1-3476C9C20DFA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chessy.Infrastructure", "src\Chessy.Infrastructure\Chessy.Infrastructure.csproj", "{42F192BF-069F-4140-8543-DCA1E92EC0D3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -47,6 +51,10 @@ Global
 		{F761F47A-D029-49DA-B5BB-F8EB80746CE0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F761F47A-D029-49DA-B5BB-F8EB80746CE0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F761F47A-D029-49DA-B5BB-F8EB80746CE0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{42F192BF-069F-4140-8543-DCA1E92EC0D3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{42F192BF-069F-4140-8543-DCA1E92EC0D3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{42F192BF-069F-4140-8543-DCA1E92EC0D3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{42F192BF-069F-4140-8543-DCA1E92EC0D3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -56,5 +64,6 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{F761F47A-D029-49DA-B5BB-F8EB80746CE0} = {00481360-9F48-4AC4-97A7-9D9A14EDA65E}
+		{42F192BF-069F-4140-8543-DCA1E92EC0D3} = {E79354AA-C404-4345-A7D1-3476C9C20DFA}
 	EndGlobalSection
 EndGlobal

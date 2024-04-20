@@ -11,14 +11,15 @@ WORKDIR /build
 COPY ["src/Chessy.Blazor/*.csproj", "src/Chessy.Blazor/"]
 COPY ["src/Chessy.Engine/*.csproj", "src/Chessy.Engine/"]
 COPY ["src/Chessy.Components/*.csproj", "src/Chessy.Components/"]
+COPY ["src/Chessy.Infrastructure/*.csproj", "src/Chessy.Infrastructure/"]
 RUN dotnet restore "src/Chessy.Blazor/Chessy.Blazor.csproj"
 COPY . .
 WORKDIR "/build/src/Chessy.Blazor"
-RUN dotnet build "Chessy.Blazor.csproj" -c $configuration -o /app/build
+RUN dotnet build "Chessy.Blazor.csproj" -c "$configuration" -o /app/build
 
 FROM build AS publish
 ARG configuration=Release
-RUN dotnet publish "Chessy.Blazor.csproj" -c $configuration -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "Chessy.Blazor.csproj" -c "$configuration" -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app

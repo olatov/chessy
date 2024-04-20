@@ -1,9 +1,11 @@
 @using System.Diagnostics
 @using System.Text
+@using Chessy.Infractructure
 
 @inject IJSRuntime _js
 @inject IDialogService _dialogService
 @inject IToastService _toastService
+@inject GameBroker _gameBroker
 
 <style>
     body {
@@ -63,21 +65,24 @@
 
             @{ var cssClass = flipBoard ? string.Empty : "reversed"; }
 
-            <FluentStack Orientation="Orientation.Vertical" Class="@cssClass">
-                <div>
-                    <FluentLabel Typo="Typography.Body">White:</FluentLabel>
-                    <PlayerSelector Label=""
-                        Player="WhitePlayer"
-                        OnChange="OnWhitePlayerChangeAsync" />
-                </div>
+            @if (game is not null && !game.IsRemote)
+            {
+                <FluentStack Orientation="Orientation.Vertical" Class="@cssClass">
+                    <div>
+                        <FluentLabel Typo="Typography.Body">White:</FluentLabel>
+                        <PlayerSelector Label=""
+                            Player="game.WhitePlayer"
+                            OnChange="OnWhitePlayerChangeAsync" />
+                    </div>
 
-                <div>
-                    <FluentLabel Typo="Typography.Body">Black:</FluentLabel>
-                    <PlayerSelector Label=""
-                        Player="BlackPlayer"
-                        OnChange="OnBlackPlayerChangeAsync" />
-                </div>
-            </FluentStack>
+                    <div>
+                        <FluentLabel Typo="Typography.Body">Black:</FluentLabel>
+                        <PlayerSelector Label=""
+                            Player="game.BlackPlayer"
+                            OnChange="OnBlackPlayerChangeAsync" />
+                    </div>
+                </FluentStack>
+            }
 
             <FluentSpacer />
 
@@ -112,13 +117,16 @@
     [Parameter]
     public Player BlackPlayer { get; set; } = new() { Type = PlayerType.Computer };
 
+    [Parameter]
+    public Guid? GameKey { get; set; } = null;
+
     private List<MoveListItem> moveList = new();
 
     private bool isGameOver = false;
 
     private bool isCurrentPlayerHuman =>
-        (game.ColorToMove == PieceColor.White && WhitePlayer.IsHuman)
-        || (game.ColorToMove == PieceColor.Black && BlackPlayer.IsHuman);
+        (game.ColorToMove == PieceColor.White && game.WhitePlayer.IsHuman)
+        || (game.ColorToMove == PieceColor.Black && game.BlackPlayer.IsHuman);
 
     private bool isBoardInputDisabled => !isCurrentPlayerHuman || isGameOver;
 
@@ -178,8 +186,7 @@
 
     private async Task OnMakeMoveAsync(Move move)
     {
-        var shortNotation = move.GetNotationVariants()
-            .First(x => validMoves.Count(y => y.GetNotationVariants().Contains(x)) == 1);
+        var shortNotation = game.GetShortNotation(move);
         await NotateAsync(move, shortNotation);
 
         @* var moves = game.Moves;
@@ -189,21 +196,16 @@
         game.Moves.Add(move); // TODO
         validMoves.Clear();
 
+        if (game.IsRemote && GameKey.HasValue)
+        {
+            _gameBroker.RemoteMakeMove(GameKey.Value, move);
+        }
+
         await PassTurnAsync();
     }
 
-    private async Task NotateAsync(Move move, string notation, bool isLetter = true)
+    private async Task NotateAsync(Move move, string notation)
     {
-        if (isLetter)
-        {
-            notation = notation
-                .Replace("♔", "K")
-                .Replace("♕", "Q")
-                .Replace("♖", "R")
-                .Replace("♗", "B")
-                .Replace("♘", "N");
-        }
-
         if (move.Piece!.Color == PieceColor.White)
         {
             moveList[^1] = moveList[^1] with { White = notation };
@@ -245,17 +247,17 @@
             var gameCopy = Game.FromMoves(game.Moves);
             gameCopy.FindMoveProgress += OnProgressChange;
 
-            var player = playerColor == PieceColor.White ? WhitePlayer : BlackPlayer;
+            var player = playerColor == PieceColor.White ? game.WhitePlayer : game.BlackPlayer;
             Trace.Assert(player.IsComputer);
             Trace.Assert(player.ComputerLevel.HasValue);
             int aiLevel = player.ComputerLevel.Value;
 
-            Move? computerMove = null;
+            Move? move = null;
             cts = new CancellationTokenSource();
             try
             {
                 isComputerThinking = true;
-                computerMove = await gameCopy.FindBestMoveABAsync(playerColor, aiLevel, cts.Token);
+                move = await gameCopy.FindBestMoveABAsync(playerColor, aiLevel, cts.Token);
             }
             catch (OperationCanceledException)
             {
@@ -272,22 +274,19 @@
 
             gameCopy.FindMoveProgress -= OnProgressChange;
 
-            if (computerMove is not null)
+            if (move is not null)
             {
-                Console.WriteLine("Computer move found: " + computerMove.GetNotationVariants().First());
                 progressCurrent = progressTotal;
                 await InvokeAsync(StateHasChanged);
                 await Task.Delay(1);
 
                 IEnumerable<Move> validMoves = gameCopy.GetMoves(playerColor).ToList();
 
-                var shortNotation = computerMove.GetNotationVariants()
-                    .First(x => validMoves.Count(y => y.GetNotationVariants().Contains(x)) == 1);
+                var shortNotation = game.GetShortNotation(move);
+                await NotateAsync(move, shortNotation);
 
-                await NotateAsync(computerMove, shortNotation);
-
-                game.MakeMove(computerMove);
-                game.Moves.Add(computerMove);
+                game.MakeMove(move);
+                game.Moves.Add(move);
 
                 progressCurrent = 0;
             }
@@ -298,9 +297,9 @@
     private async Task PassTurnAsync()
     {
         await InvokeAsync(StateHasChanged);
-        await Task.Delay(1);
 
         var lastMove = game.Moves.LastOrDefault();
+        Console.WriteLine($"Last move: {lastMove}");
         if (lastMove is null) { return; }
 
         if (game.Moves.Count > 1000)
@@ -311,11 +310,14 @@
         }
 
         game.ColorToMove = game.ColorToMove.OpponentColor();
-        var currentPlayer = game.ColorToMove == PieceColor.White ? WhitePlayer : BlackPlayer;
+        var currentPlayer = game.ColorToMove == PieceColor.White ? game.WhitePlayer : game.BlackPlayer;
+        Console.WriteLine(game.ColorToMove);
+        Console.WriteLine(currentPlayer.Type);
 
         var sw = Stopwatch.StartNew();
-        validMoves = Game.FromMoves(game.Moves).GetMoves(game.ColorToMove).ToList();
-        if (!validMoves.Any())
+        var moves = game.GetMoves(game.ColorToMove).ToList();
+        sw.Stop();
+        if (!moves.Any())
         {
             if (lastMove.IsCheck)
             {
@@ -331,20 +333,22 @@
             return;
         }
 
-        sw.Stop();
+        validMoves = currentPlayer.IsHuman ? moves : [];
 
         if (currentPlayer.IsComputer)
         {
             await ComputerMoveAsync(game.ColorToMove);
         }
+
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task OnWhitePlayerChangeAsync(Player value)
     {
         await InterruptComputerThinkingAsync();
-        WhitePlayer = value;
+        game.WhitePlayer = value;
 
-        if (WhitePlayer.IsComputer && game.ColorToMove == PieceColor.White)
+        if (game.WhitePlayer.IsComputer && game.ColorToMove == PieceColor.White)
         {
             await ComputerMoveAsync(PieceColor.White);
         }
@@ -353,9 +357,9 @@
     private async Task OnBlackPlayerChangeAsync(Player value)
     {
         await InterruptComputerThinkingAsync();
-        BlackPlayer = value;
+        game.BlackPlayer = value;
 
-        if (BlackPlayer.IsComputer && game.ColorToMove == PieceColor.Black)
+        if (game.BlackPlayer.IsComputer && game.ColorToMove == PieceColor.Black)
         {
             await ComputerMoveAsync(PieceColor.Black);
         }
@@ -369,32 +373,79 @@
     public async Task StartNewGameAsync()
     {
         await InterruptComputerThinkingAsync();
-        game.ResetToStartingPosition();
-        game.WhitePlayer = WhitePlayer;
-        game.BlackPlayer = BlackPlayer;
+
+        if (GameKey.HasValue)
+        {
+            var remoteGame = _gameBroker.GetGame(GameKey.Value);
+            if (remoteGame is null)
+            {
+                throw new InvalidDataException("Game does not exist");
+            }
+
+            game = remoteGame;
+            if (game.WhitePlayer.IsRemoteGuest)
+            {
+                Trace.Assert(game.BlackPlayer.IsHuman);
+                _gameBroker.OnRemoveMakeMove[GameKey.Value] = OnRemoteMakeMoveAsync;
+                flipBoard = true;
+            }
+            else if (game.BlackPlayer.IsRemoteGuest)
+            {
+                Trace.Assert(game.WhitePlayer.IsHuman);
+                _gameBroker.OnRemoveMakeMove[GameKey.Value] = OnRemoteMakeMoveAsync;
+            }
+            else
+            {
+                throw new InvalidOperationException("This is wrong");
+            }
+        }
+        else
+        {
+            game.ResetToStartingPosition();
+            game.WhitePlayer = WhitePlayer;
+            game.BlackPlayer = BlackPlayer;
+        }
+
         moveList.Clear();
         isGameOver = false;
         moveList.Add(new MoveListItem(1));
 
-        switch (WhitePlayer.Type)
+        switch (game.WhitePlayer.Type)
         {
             case PlayerType.Human:
+            case PlayerType.RemoteGuest:
                 validMoves = game.GetMoves(PieceColor.White).ToList();
                 break;
 
             case PlayerType.Computer:
                 await ComputerMoveAsync(game.ColorToMove);
                 break;
-
-            case PlayerType.RemoteGuest:
-                throw new NotImplementedException();
         }
-
     }
 
     public async Task OnNewGameClickAsync()
     {
         await StartNewGameAsync();
+    }
+
+    private async Task OnRemoteMakeMoveAsync(Move remoteMove)
+    {
+        Console.WriteLine($"Recv: key {GameKey}: {remoteMove}");
+
+        var moves = game.GetMoves(game.ColorToMove);
+        var move = moves.Single(x =>
+            x.From == remoteMove.From
+            && x.To == remoteMove.To
+            && x.PromotionPieceKind == remoteMove.PromotionPieceKind);
+        Console.WriteLine($"FOUND {move}");
+
+        var shortNotation = game.GetShortNotation(move);
+        await NotateAsync(move, shortNotation);
+
+        game.MakeMove(move);
+        game.Moves.Add(move);
+
+        await PassTurnAsync();
     }
 
     private async Task InterruptComputerThinkingAsync()

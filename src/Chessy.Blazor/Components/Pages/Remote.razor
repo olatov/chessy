@@ -1,0 +1,26 @@
+@page "/remote"
+
+@inject GameBroker _gameRegistry
+
+<FluentCard>
+    <p>White: <a target="_blank" href="@whiteLink">@whiteLink</a></p>
+    <p>Black: <a target="_blank" href="@blackLink">@blackLink</a></p>
+</FluentCard>
+
+@code {
+    private Guid whiteKey;
+
+    private Guid blackKey;
+
+    private string whiteLink => $"/?key={whiteKey}";
+
+    private string blackLink => $"/?key={blackKey}";
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        (whiteKey, blackKey) = _gameRegistry.CreateNewGame();
+    }
+}
+

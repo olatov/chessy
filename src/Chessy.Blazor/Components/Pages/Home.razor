@@ -2,10 +2,15 @@
 
 @* Human vs Comp lvl 5 by default *@
 <ChessyGame
-    WhitePlayer="@whitePlayer"
-    BlackPlayer="blackPlayer" />
+    WhitePlayer="whitePlayer"
+    BlackPlayer="blackPlayer"
+    GameKey="Key" />
 
 @code {
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public Guid? Key { get; set; } = null;
+
     private Player whitePlayer = new()
     {
         Name = "White",

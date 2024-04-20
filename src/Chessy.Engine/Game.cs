@@ -5,13 +5,15 @@ using Chessy.Engine.Pieces;
 
 namespace Chessy.Engine;
 
-public class Game
+public sealed class Game
 {
     public Player WhitePlayer { get; set; } = new() { Type = PlayerType.Human };
 
     public Player BlackPlayer { get; set; } = new() { Type = PlayerType.Human };
 
     public Board Board { get; set; } = new Board();
+
+    public bool IsRemote => WhitePlayer.IsRemoteGuest || BlackPlayer.IsRemoteGuest;
 
     public IList<Move> Moves { get; set; } = new List<Move>();
 
@@ -591,5 +593,14 @@ public class Game
         }
 
         return false;
+    }
+
+    public string GetShortNotation(Move move)
+    {
+        var moves = GetMoves(move.Piece.Color);
+        return move.GetNotationVariants()
+            .FirstOrDefault(x => moves.Count(
+                y => y.GetNotationVariants().Contains(x)) == 1) ?? string.Empty;
+
     }
 }

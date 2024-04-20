@@ -1,5 +1,6 @@
 using Microsoft.FluentUI.AspNetCore.Components;
 using Chessy.Blazor.Components;
+using Chessy.Infractructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,6 +10,8 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddHttpClient();
 builder.Services.AddFluentUIComponents();
+
+builder.Services.AddSingleton<GameBroker>();
 
 var app = builder.Build();
 
