@@ -585,7 +585,6 @@ public sealed class Game
                             return true;
                         }
 
-
                         return false;
 
                 }

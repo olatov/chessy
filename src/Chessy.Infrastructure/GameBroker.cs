@@ -1,4 +1,4 @@
-namespace Chessy.Infractructure;
+namespace Chessy.Infrastructure;
 
 internal sealed class GameRegistryItem
 {
@@ -19,15 +19,15 @@ internal sealed class GameRegistryItem
     };
 }
 
-public sealed class GameBroker
+public sealed class GameBroker : IGameBroker
 {
     const int MaxItems = 5;
 
-    private List<Game> _games = new();
-
-    private Queue<GameRegistryItem> _registry = new();
+    private readonly Queue<GameRegistryItem> _registry = new();
 
     public Dictionary<Guid, Func<Move, Task>> OnRemoveMakeMove { get; set; } = new();
+
+    public Dictionary<Guid, Action<string>> OnChatMessageSend { get; set; } = new();
 
     public void RemoteMakeMove(Guid key, Move move)
     {
@@ -52,6 +52,23 @@ public sealed class GameBroker
         }
 
         throw new InvalidOperationException("This is wrong");
+    }
+
+    public void RemoteChatMessageSend(Guid key, string message)
+    {
+        var item = _registry.FirstOrDefault(x => x.WhiteKey == key || x.BlackKey == key);
+        if (item is not null)
+        {
+            if (OnChatMessageSend.TryGetValue(item.WhiteKey, out var handler))
+            {
+                handler.Invoke(message);
+            }
+
+            if (OnChatMessageSend.TryGetValue(item.BlackKey, out handler))
+            {
+                handler.Invoke(message);
+            }
+        }
     }
 
     public (Guid WhiteKey, Guid BlackKey) CreateNewGame()

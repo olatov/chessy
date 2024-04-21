@@ -1,11 +1,11 @@
 @using System.Diagnostics
 @using System.Text
-@using Chessy.Infractructure
+@using Chessy.Infrastructure
 
 @inject IJSRuntime _js
 @inject IDialogService _dialogService
 @inject IToastService _toastService
-@inject GameBroker _gameBroker
+@inject IGameBroker _gameBroker
 
 <style>
     body {
@@ -106,6 +106,12 @@
                 OnClick="@CopyPgnToClipboard"
                 disabled="@(!moveList.Any())"
                 >Copy PGN</FluentButton>
+
+            @if (game is not null && game.IsRemote)
+            {
+                <Chat Messages="chatMessages"
+                    OnSendMessage="OnChatMessageSend" />
+            }
         </FluentStack>
     </FluentStack>
 </FluentCard>
@@ -121,6 +127,8 @@
     public Guid? GameKey { get; set; } = null;
 
     private List<MoveListItem> moveList = new();
+
+    private List<string> chatMessages = [];
 
     private bool isGameOver = false;
 
@@ -230,68 +238,67 @@
     {
         Console.WriteLine($"Computer move for {playerColor}");
 
-            Console.WriteLine("Thinking task started...");
-            progressTotal = 1;
+        progressTotal = 1;
+        progressCurrent = 0;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(1);
+
+        async void OnProgressChange(object? sender, FindMoveProgressEventArgs e)
+        {
+            progressCurrent = e.Current;
+            progressTotal = e.Total;
+            await InvokeAsync(StateHasChanged);
+            await Task.Delay(1);
+        }
+
+        var gameCopy = Game.FromMoves(game.Moves);
+        gameCopy.FindMoveProgress += OnProgressChange;
+
+        var player = playerColor == PieceColor.White ? game.WhitePlayer : game.BlackPlayer;
+        Trace.Assert(player.IsComputer);
+        Trace.Assert(player.ComputerLevel.HasValue);
+        int aiLevel = player.ComputerLevel.Value;
+
+        Move? move = null;
+        cts = new CancellationTokenSource();
+        try
+        {
+            isComputerThinking = true;
+            move = await gameCopy.FindBestMoveABAsync(playerColor, aiLevel, cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
             progressCurrent = 0;
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+        finally
+        {
+            cts?.Dispose();
+            cts = null;
+            isComputerThinking = false;
+        }
+
+        gameCopy.FindMoveProgress -= OnProgressChange;
+
+        if (move is not null)
+        {
+            progressCurrent = progressTotal;
             await InvokeAsync(StateHasChanged);
             await Task.Delay(1);
 
-            async void OnProgressChange(object? sender, FindMoveProgressEventArgs e)
-            {
-                progressCurrent = e.Current;
-                progressTotal = e.Total;
-                await InvokeAsync(StateHasChanged);
-                await Task.Delay(1);
-            }
+            IEnumerable<Move> validMoves = gameCopy.GetMoves(playerColor).ToList();
 
-            var gameCopy = Game.FromMoves(game.Moves);
-            gameCopy.FindMoveProgress += OnProgressChange;
+            var shortNotation = game.GetShortNotation(move);
+            await NotateAsync(move, shortNotation);
 
-            var player = playerColor == PieceColor.White ? game.WhitePlayer : game.BlackPlayer;
-            Trace.Assert(player.IsComputer);
-            Trace.Assert(player.ComputerLevel.HasValue);
-            int aiLevel = player.ComputerLevel.Value;
+            game.MakeMove(move);
+            game.Moves.Add(move);
 
-            Move? move = null;
-            cts = new CancellationTokenSource();
-            try
-            {
-                isComputerThinking = true;
-                move = await gameCopy.FindBestMoveABAsync(playerColor, aiLevel, cts.Token);
-            }
-            catch (OperationCanceledException)
-            {
-                progressCurrent = 0;
-                await InvokeAsync(StateHasChanged);
-                return;
-            }
-            finally
-            {
-                cts?.Dispose();
-                cts = null;
-                isComputerThinking = false;
-            }
+            progressCurrent = 0;
+        }
 
-            gameCopy.FindMoveProgress -= OnProgressChange;
-
-            if (move is not null)
-            {
-                progressCurrent = progressTotal;
-                await InvokeAsync(StateHasChanged);
-                await Task.Delay(1);
-
-                IEnumerable<Move> validMoves = gameCopy.GetMoves(playerColor).ToList();
-
-                var shortNotation = game.GetShortNotation(move);
-                await NotateAsync(move, shortNotation);
-
-                game.MakeMove(move);
-                game.Moves.Add(move);
-
-                progressCurrent = 0;
-            }
-
-            await PassTurnAsync();
+        await PassTurnAsync();
     }
 
     private async Task PassTurnAsync()
@@ -299,7 +306,6 @@
         await InvokeAsync(StateHasChanged);
 
         var lastMove = game.Moves.LastOrDefault();
-        Console.WriteLine($"Last move: {lastMove}");
         if (lastMove is null) { return; }
 
         if (game.Moves.Count > 1000)
@@ -311,8 +317,6 @@
 
         game.ColorToMove = game.ColorToMove.OpponentColor();
         var currentPlayer = game.ColorToMove == PieceColor.White ? game.WhitePlayer : game.BlackPlayer;
-        Console.WriteLine(game.ColorToMove);
-        Console.WriteLine(currentPlayer.Type);
 
         var sw = Stopwatch.StartNew();
         var moves = game.GetMoves(game.ColorToMove).ToList();
@@ -386,18 +390,19 @@
             if (game.WhitePlayer.IsRemoteGuest)
             {
                 Trace.Assert(game.BlackPlayer.IsHuman);
-                _gameBroker.OnRemoveMakeMove[GameKey.Value] = OnRemoteMakeMoveAsync;
                 flipBoard = true;
             }
             else if (game.BlackPlayer.IsRemoteGuest)
             {
                 Trace.Assert(game.WhitePlayer.IsHuman);
-                _gameBroker.OnRemoveMakeMove[GameKey.Value] = OnRemoteMakeMoveAsync;
             }
             else
             {
                 throw new InvalidOperationException("This is wrong");
             }
+
+            _gameBroker.OnRemoveMakeMove[GameKey.Value] = OnRemoteMakeMoveAsync;
+            _gameBroker.OnChatMessageSend[GameKey.Value] = OnChatMessageReceive;
         }
         else
         {
@@ -413,7 +418,6 @@
         switch (game.WhitePlayer.Type)
         {
             case PlayerType.Human:
-            case PlayerType.RemoteGuest:
                 validMoves = game.GetMoves(PieceColor.White).ToList();
                 break;
 
@@ -430,14 +434,11 @@
 
     private async Task OnRemoteMakeMoveAsync(Move remoteMove)
     {
-        Console.WriteLine($"Recv: key {GameKey}: {remoteMove}");
-
         var moves = game.GetMoves(game.ColorToMove);
         var move = moves.Single(x =>
             x.From == remoteMove.From
             && x.To == remoteMove.To
             && x.PromotionPieceKind == remoteMove.PromotionPieceKind);
-        Console.WriteLine($"FOUND {move}");
 
         var shortNotation = game.GetShortNotation(move);
         await NotateAsync(move, shortNotation);
@@ -466,5 +467,28 @@
 
             await Task.Delay(50);
         }
+    }
+
+    private void OnChatMessageSend(string message)
+    {
+        if (!GameKey.HasValue) { return; }
+
+        var playerName = "Unknown";
+        if (game.WhitePlayer.IsHuman)
+        {
+            playerName = WhitePlayer.Name;
+        }
+        else if (game.BlackPlayer.IsHuman)
+        {
+            playerName = BlackPlayer.Name;
+        }
+
+        _gameBroker.RemoteChatMessageSend(GameKey.Value, $"[{playerName}]: {message}");
+    }
+
+    private void OnChatMessageReceive(string message)
+    {
+        chatMessages.Add(message);
+        InvokeAsync(StateHasChanged);
     }
 }
