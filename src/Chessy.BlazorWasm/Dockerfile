@@ -13,6 +13,7 @@ WORKDIR /build
 COPY ["src/Chessy.BlazorWasm/*.csproj", "src/Chessy.BlazorWasm/"]
 COPY ["src/Chessy.Components/*.csproj", "src/Chessy.Components/"]
 COPY ["src/Chessy.Engine/*.csproj", "src/Chessy.Engine/"]
+COPY ["src/Chessy.Infrastructure/*.csproj", "src/Chessy.Infrastructure/"]
 
 RUN dotnet restore "src/Chessy.BlazorWasm/Chessy.BlazorWasm.csproj"
 COPY . .
