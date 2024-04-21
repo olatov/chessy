@@ -3,23 +3,25 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34322.80
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chessy.Engine", "src\Chessy.Engine\Chessy.Engine.csproj", "{F5D00D3F-50C8-4143-9893-A2FA52D90C34}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chessy.Engine", "src\Chessy.Engine\Chessy.Engine.csproj", "{F5D00D3F-50C8-4143-9893-A2FA52D90C34}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chessy.Console", "src\Chessy.Console\Chessy.Console.csproj", "{AB552250-F722-4ADA-8DDA-E610D77E6B4C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chessy.Console", "src\Chessy.Console\Chessy.Console.csproj", "{AB552250-F722-4ADA-8DDA-E610D77E6B4C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chessy.Blazor", "src\Chessy.Blazor\Chessy.Blazor.csproj", "{A87AE5A8-8288-4CFC-BF11-D429459C3FEC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chessy.Blazor", "src\Chessy.Blazor\Chessy.Blazor.csproj", "{A87AE5A8-8288-4CFC-BF11-D429459C3FEC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chessy.BlazorWasm", "src\Chessy.BlazorWasm\Chessy.BlazorWasm.csproj", "{869131CC-0AB4-467A-A347-2CDD3D8FD7D0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chessy.BlazorWasm", "src\Chessy.BlazorWasm\Chessy.BlazorWasm.csproj", "{869131CC-0AB4-467A-A347-2CDD3D8FD7D0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chessy.Benchmarks", "tests\Chessy.Benchmarks\Chessy.Benchmarks.csproj", "{8FBAE256-469B-4B51-B4F4-A0E54ADEAE73}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chessy.Benchmarks", "tests\Chessy.Benchmarks\Chessy.Benchmarks.csproj", "{8FBAE256-469B-4B51-B4F4-A0E54ADEAE73}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{00481360-9F48-4AC4-97A7-9D9A14EDA65E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chessy.Engine.Tests", "tests\Chessy.Engine.Tests\Chessy.Engine.Tests.csproj", "{F761F47A-D029-49DA-B5BB-F8EB80746CE0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chessy.Engine.Tests", "tests\Chessy.Engine.Tests\Chessy.Engine.Tests.csproj", "{F761F47A-D029-49DA-B5BB-F8EB80746CE0}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{E79354AA-C404-4345-A7D1-3476C9C20DFA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Chessy.Infrastructure", "src\Chessy.Infrastructure\Chessy.Infrastructure.csproj", "{42F192BF-069F-4140-8543-DCA1E92EC0D3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chessy.Infrastructure", "src\Chessy.Infrastructure\Chessy.Infrastructure.csproj", "{42F192BF-069F-4140-8543-DCA1E92EC0D3}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Chessy.Components", "src\Chessy.Components\Chessy.Components.csproj", "{1C1C6A57-6AD0-474B-A881-360A93616383}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -55,15 +57,25 @@ Global
 		{42F192BF-069F-4140-8543-DCA1E92EC0D3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{42F192BF-069F-4140-8543-DCA1E92EC0D3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{42F192BF-069F-4140-8543-DCA1E92EC0D3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1C1C6A57-6AD0-474B-A881-360A93616383}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1C1C6A57-6AD0-474B-A881-360A93616383}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1C1C6A57-6AD0-474B-A881-360A93616383}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1C1C6A57-6AD0-474B-A881-360A93616383}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
-	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {68F0AAF7-50D8-4988-B57B-120EC628FC64}
-	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{F5D00D3F-50C8-4143-9893-A2FA52D90C34} = {E79354AA-C404-4345-A7D1-3476C9C20DFA}
+		{AB552250-F722-4ADA-8DDA-E610D77E6B4C} = {E79354AA-C404-4345-A7D1-3476C9C20DFA}
+		{A87AE5A8-8288-4CFC-BF11-D429459C3FEC} = {E79354AA-C404-4345-A7D1-3476C9C20DFA}
+		{869131CC-0AB4-467A-A347-2CDD3D8FD7D0} = {E79354AA-C404-4345-A7D1-3476C9C20DFA}
+		{8FBAE256-469B-4B51-B4F4-A0E54ADEAE73} = {00481360-9F48-4AC4-97A7-9D9A14EDA65E}
 		{F761F47A-D029-49DA-B5BB-F8EB80746CE0} = {00481360-9F48-4AC4-97A7-9D9A14EDA65E}
 		{42F192BF-069F-4140-8543-DCA1E92EC0D3} = {E79354AA-C404-4345-A7D1-3476C9C20DFA}
+		{1C1C6A57-6AD0-474B-A881-360A93616383} = {E79354AA-C404-4345-A7D1-3476C9C20DFA}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {68F0AAF7-50D8-4988-B57B-120EC628FC64}
 	EndGlobalSection
 EndGlobal

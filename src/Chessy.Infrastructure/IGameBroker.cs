@@ -1,17 +1,17 @@
+using Chessy.Infrastructure.GameBrokerMessages;
+
 namespace Chessy.Infrastructure;
 
 
 public interface IGameBroker
 {
-    public Dictionary<Guid, Func<Move, Task>> OnRemoveMakeMove { get; set; }
+    public Dictionary<Guid, Func<IGameBrokerMessage, Task>> OnGameBrokerMessage { get; set; }
 
-    public Dictionary<Guid, Action<string>> OnChatMessageSend { get; set; }
-
-    public void RemoteMakeMove(Guid key, Move move);
-
-    public void RemoteChatMessageSend(Guid key, string message);
+    public void ProcessMessage(Guid key, IGameBrokerMessage message);
 
     public (Guid WhiteKey, Guid BlackKey) CreateNewGame();
 
     public Game? GetGame(Guid key);
+
+    public List<string> GetChatMessages(Guid key);
 }

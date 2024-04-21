@@ -10,9 +10,9 @@ namespace Chessy.Benchmarks;
 [SimpleJob(RuntimeMoniker.Net80)]
 [SimpleJob(RuntimeMoniker.NativeAot80)]
 
-public class PositionBenchmarks
+public class GameBenchmarks
 {
-    private Position _sut = new();
+    private Game _sut = new();
 
     [GlobalSetup]
     public void Setup()
@@ -49,6 +49,6 @@ public class Program
 {
     public static void Main()
     {
-        BenchmarkRunner.Run<PositionBenchmarks>();
+        BenchmarkRunner.Run<GameBenchmarks>();
     }
 }

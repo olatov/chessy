@@ -1,3 +1,5 @@
+using Chessy.Infrastructure.GameBrokerMessages;
+
 namespace Chessy.Infrastructure;
 
 internal sealed class GameRegistryItem
@@ -17,6 +19,8 @@ internal sealed class GameRegistryItem
         WhitePlayer = new() { Type = PlayerType.RemoteGuest },
         BlackPlayer = new() { Type = PlayerType.Human },
     };
+
+    public List<string> ChatMessages { get; private set; } = new List<string>();
 }
 
 public sealed class GameBroker : IGameBroker
@@ -25,18 +29,33 @@ public sealed class GameBroker : IGameBroker
 
     private readonly Queue<GameRegistryItem> _registry = new();
 
-    public Dictionary<Guid, Func<Move, Task>> OnRemoveMakeMove { get; set; } = new();
+    public Dictionary<Guid, Func<IGameBrokerMessage, Task>> OnGameBrokerMessage { get; set; } = new();
 
-    public Dictionary<Guid, Action<string>> OnChatMessageSend { get; set; } = new();
+    public void ProcessMessage(Guid key, IGameBrokerMessage message)
+    {
+        if (message is MoveMessage moveMessage)
+        {
+            ProcessMoveMessage(key, moveMessage);
+            return;
+        }
 
-    public void RemoteMakeMove(Guid key, Move move)
+        if (message is ChatMessage chatMessage)
+        {
+            ProcessChatMessage(key, chatMessage);
+            return;
+        }
+
+        throw new ArgumentException($"Invalid message - {message}");
+    }
+
+    private void ProcessMoveMessage(Guid key, MoveMessage message)
     {
         var whiteItem = _registry.FirstOrDefault(x => x.WhiteKey == key);
         if (whiteItem is not null)
         {
-            if (OnRemoveMakeMove.TryGetValue(whiteItem.BlackKey, out var handler))
+            if (OnGameBrokerMessage.TryGetValue(whiteItem.BlackKey, out var handler))
             {
-                handler.Invoke(move);
+                handler.Invoke(message);
             }
             return;
         }
@@ -44,9 +63,9 @@ public sealed class GameBroker : IGameBroker
         var blackItem = _registry.FirstOrDefault(x => x.BlackKey == key);
         if (blackItem is not null)
         {
-            if (OnRemoveMakeMove.TryGetValue(blackItem.WhiteKey, out var handler))
+            if (OnGameBrokerMessage.TryGetValue(blackItem.WhiteKey, out var handler))
             {
-                handler.Invoke(move);
+                handler.Invoke(message);
             }
             return;
         }
@@ -54,17 +73,18 @@ public sealed class GameBroker : IGameBroker
         throw new InvalidOperationException("This is wrong");
     }
 
-    public void RemoteChatMessageSend(Guid key, string message)
+    private void ProcessChatMessage(Guid key, ChatMessage message)
     {
         var item = _registry.FirstOrDefault(x => x.WhiteKey == key || x.BlackKey == key);
         if (item is not null)
         {
-            if (OnChatMessageSend.TryGetValue(item.WhiteKey, out var handler))
+            item.ChatMessages.Add(message.Message);
+            if (OnGameBrokerMessage.TryGetValue(item.WhiteKey, out var handler))
             {
                 handler.Invoke(message);
             }
 
-            if (OnChatMessageSend.TryGetValue(item.BlackKey, out handler))
+            if (OnGameBrokerMessage.TryGetValue(item.BlackKey, out handler))
             {
                 handler.Invoke(message);
             }
@@ -82,8 +102,7 @@ public sealed class GameBroker : IGameBroker
         while (_registry.Count > MaxItems)
         {
             var oldItem = _registry.Dequeue();
-            OnRemoveMakeMove.Remove(oldItem.WhiteKey);
-            OnRemoveMakeMove.Remove(oldItem.BlackKey);
+            OnGameBrokerMessage.Remove(oldItem.WhiteKey);
         }
 
         return (item.WhiteKey, item.BlackKey);
@@ -104,5 +123,11 @@ public sealed class GameBroker : IGameBroker
         }
 
         return null;
+    }
+
+    public List<string> GetChatMessages(Guid key)
+    {
+        var item = _registry.FirstOrDefault(x => x.WhiteKey == key || x.BlackKey == key);
+        return item?.ChatMessages ?? new List<string>();
     }
 }

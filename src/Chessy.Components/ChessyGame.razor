@@ -1,6 +1,5 @@
 @using System.Diagnostics
 @using System.Text
-@using Chessy.Infrastructure
 
 @inject IJSRuntime _js
 @inject IDialogService _dialogService
@@ -197,16 +196,13 @@
         var shortNotation = game.GetShortNotation(move);
         await NotateAsync(move, shortNotation);
 
-        @* var moves = game.Moves;
-        moves.Add(move);
-        game = Position.FromMoves(moves); *@
         game.MakeMove(move);
         game.Moves.Add(move); // TODO
         validMoves.Clear();
 
         if (game.IsRemote && GameKey.HasValue)
         {
-            _gameBroker.RemoteMakeMove(GameKey.Value, move);
+            _gameBroker.ProcessMessage(GameKey.Value, new MoveMessage { Move = move });
         }
 
         await PassTurnAsync();
@@ -401,8 +397,9 @@
                 throw new InvalidOperationException("This is wrong");
             }
 
-            _gameBroker.OnRemoveMakeMove[GameKey.Value] = OnRemoteMakeMoveAsync;
-            _gameBroker.OnChatMessageSend[GameKey.Value] = OnChatMessageReceive;
+            _gameBroker.OnGameBrokerMessage[GameKey.Value] = OnMessageReceivedAsync;
+
+            chatMessages = _gameBroker.GetChatMessages(GameKey.Value);
         }
         else
         {
@@ -483,12 +480,38 @@
             playerName = BlackPlayer.Name;
         }
 
-        _gameBroker.RemoteChatMessageSend(GameKey.Value, $"[{playerName}]: {message}");
+        _gameBroker.ProcessMessage(GameKey.Value, new ChatMessage { Message = $"[{playerName}]: {message}" });
     }
 
     private void OnChatMessageReceive(string message)
     {
         chatMessages.Add(message);
         InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnMessageReceivedAsync(IGameBrokerMessage message)
+    {
+        if (message is ChatMessage chatMessage)
+        {
+            await InvokeAsync(StateHasChanged);
+        }
+
+        if (message is MoveMessage moveMessage)
+        {
+            var remoteMove = moveMessage.Move;
+            var moves = game.GetMoves(game.ColorToMove);
+            var move = moves.Single(x =>
+                x.From == remoteMove.From
+                && x.To == remoteMove.To
+                && x.PromotionPieceKind == remoteMove.PromotionPieceKind);
+
+            var shortNotation = game.GetShortNotation(move);
+            await NotateAsync(move, shortNotation);
+
+            game.MakeMove(move);
+            game.Moves.Add(move);
+
+            await PassTurnAsync();
+        }
     }
 }
