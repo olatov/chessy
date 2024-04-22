@@ -24,11 +24,13 @@ FROM build AS publish
 ARG configuration=Release
 RUN dotnet publish "Chessy.BlazorWasm.csproj" -c "$configuration" -o /app/publish /p:UseAppHost=false
 
-FROM nginx:alpine AS final
-WORKDIR /usr/share/nginx/html
+# nginx
+#FROM nginx:alpine AS final
+#WORKDIR /usr/share/nginx/html
+#COPY --from=publish /app/publish/wwwroot .
+#CMD ["nginx", "-g", "daemon off;"]
+
+# lighthttpd
+FROM rtsp/lighttpd:latest AS final
+WORKDIR /var/www/html/
 COPY --from=publish /app/publish/wwwroot .
-
-EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"]
-

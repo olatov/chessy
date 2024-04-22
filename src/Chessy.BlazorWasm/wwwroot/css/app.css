@@ -101,11 +101,3 @@ a, .btn-link {
 code {
     color: #c02d76;
 }
-
-@font-face {
-    font-family: 'FreeSerif';
-    src: url('FreeSerif.woff') format('woff');
-    /* Add other font formats if necessary (e.g., .ttf, .otf) */
-    font-weight: normal;
-    font-style: normal;
-}
