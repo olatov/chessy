@@ -1,10 +1,12 @@
 ﻿@page "/"
 
-@* Human vs Comp lvl 5 by default *@
-<ChessyGame
-    WhitePlayer="whitePlayer"
-    BlackPlayer="blackPlayer"
-    GameKey="Key" />
+<div class="main-content">
+    @* Human vs Comp lvl 5 by default *@
+    <ChessyGame
+        WhitePlayer="whitePlayer"
+        BlackPlayer="blackPlayer"
+        GameKey="Key" />
+</div>
 
 @code {
     [Parameter]

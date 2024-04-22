@@ -7,26 +7,22 @@
 @inject IGameBroker _gameBroker
 
 <style>
-    body {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        background-color: darkgray;
-        margin: 0;
+  .right-panel {
+    @@media (max-width: 576px) {
+        display: none !important;
     }
-
-    @@font-face {
-        font-family: 'FreeSerif';
-        src: url('FreeSerif.woff') format('woff');
-        /* Add other font formats if necessary (e.g., .ttf, .otf) */
-        font-weight: normal;
-        font-style: normal;
-    }
+  }
 
   .container {
-      margin: 32px;
-      padding: 12px !important;
+      padding: 10px !important;
       width: auto;
+      height: auto;
+
+      @@media (max-width: 767px) {
+        margin: 0;
+        padding: 0 !important;
+        border-radius: 0;
+      }
   }
 
   .reversed {
@@ -49,7 +45,7 @@
             ValidMoves="@validMoves"
         />
 
-        <FluentStack Orientation="Orientation.Vertical">
+        <FluentStack Orientation="Orientation.Vertical" Class="right-panel">
             <FluentStack Orientation="Orientation.Horizontal">
                 <FluentButton
                     IconStart="@(new Icons.Regular.Size20.Chess())"

@@ -2,10 +2,14 @@
 
 <style>
     .message-list {
-        max-height: 10rem;
+        max-height: 8rem;
         width: 100%;
         overflow-y: scroll;
         scrollbar-width: none;
+
+        @@media (max-width: 767px) {
+            max-height: 6rem;
+        }
     }
 </style>
 

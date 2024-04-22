@@ -3,9 +3,12 @@
 <PageTitle>Chessy Wasm</PageTitle>
 
 @* Human vs Comp lvl 5 by default *@
-<ChessyGame
-    WhitePlayer="@whitePlayer"
-    BlackPlayer="blackPlayer" />
+
+<div class="main-content">
+    <ChessyGame
+        WhitePlayer="@whitePlayer"
+        BlackPlayer="blackPlayer" />
+</div>
 
 @code {
     private Player whitePlayer = new()
