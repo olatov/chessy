@@ -34,3 +34,24 @@ RUN dotnet publish "Chessy.BlazorWasm.csproj" -c "$configuration" -o /app/publis
 FROM rtsp/lighttpd:latest AS final
 WORKDIR /var/www/html/
 COPY --from=publish /app/publish/wwwroot .
+
+COPY <<EOF /etc/lighttpd/conf.d/20-deflate.conf
+server.modules += ( "mod_deflate" )
+deflate.cache-dir = "/tmp/cache/compress/"
+deflate.mimetypes = (
+    "application/wasm",
+    "application/javascript",
+    "text/css",
+    "text/html",
+    "text/plain",
+    "application/data"
+)
+deflate.allowed-encodings = ( "br", "gzip", "deflate" ) # "bzip2" and "zstd" also supported
+EOF
+
+COPY <<EOF /etc/lighttpd/conf.d/99-wasm-mime-type.conf
+mimetype.assign += (
+    ".wasm" => "application/wasm",
+    ".dat" => "application/data"
+)
+EOF
