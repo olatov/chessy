@@ -249,14 +249,14 @@
         var player = playerColor == PieceColor.White ? game.WhitePlayer : game.BlackPlayer;
         Trace.Assert(player.IsComputer);
         Trace.Assert(player.ComputerLevel.HasValue);
-        int aiLevel = player.ComputerLevel.Value;
+        int depth = player.ComputerLevel.Value + 1;
 
         Move? move = null;
         cts = new CancellationTokenSource();
         try
         {
             isComputerThinking = true;
-            move = await gameCopy.FindBestMoveABAsync(playerColor, aiLevel, cts.Token);
+            move = await gameCopy.FindBestMoveABAsync(playerColor, depth, cts.Token);
         }
         catch (OperationCanceledException)
         {
