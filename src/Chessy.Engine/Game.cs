@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Chessy.Engine.Events;
 using Chessy.Engine.Extensions;
 using Chessy.Engine.Pieces;
@@ -384,10 +384,14 @@ public sealed class Game
                     if (coords.IsValid && Board.Squares[coords.File, coords.Rank] is null)
                     {
                         yield return coords;
-                        coords = new Coords(from.File, from.Rank + 2);
-                        if (from.Rank == 1 && Board.Squares[coords.File, coords.Rank] is null)
+                        if (from.Rank == 1)
                         {
-                            yield return coords;
+                            coords = new Coords(from.File, 3);
+                            if (coords.IsValid && Board.Squares[coords.File, coords.Rank] is null)
+
+                            {
+                                yield return coords;
+                            }
                         }
                     }
 
@@ -396,7 +400,7 @@ public sealed class Game
                     {
                         yield return coords;
                     }
-                    if (coords == EnPassantTarget)
+                    if (from.Rank == 4 && coords == EnPassantTarget)
                     {
                         yield return coords;
                     }
@@ -406,7 +410,7 @@ public sealed class Game
                     {
                         yield return coords;
                     }
-                    if (coords == EnPassantTarget)
+                    if (from.Rank == 4 && coords == EnPassantTarget)
                     {
                         yield return coords;
                     }
@@ -418,10 +422,13 @@ public sealed class Game
                     if (coords.IsValid && Board.Squares[coords.File, coords.Rank] is null)
                     {
                         yield return coords;
-                        coords = new Coords(from.File, from.Rank - 2);
-                        if (from.Rank == 6 && Board.Squares[coords.File, coords.Rank] is null)
+                        if (from.Rank == 6)
                         {
-                            yield return coords;
+                            coords = new Coords(from.File, 4);
+                            if (Board.Squares[coords.File, coords.Rank] is null)
+                            {
+                                yield return coords;
+                            }
                         }
                     }
 
@@ -430,7 +437,7 @@ public sealed class Game
                     {
                         yield return coords;
                     }
-                    if (coords == EnPassantTarget)
+                    if (from.Rank == 3 && coords == EnPassantTarget)
                     {
                         yield return coords;
                     }
@@ -440,7 +447,7 @@ public sealed class Game
                     {
                         yield return coords;
                     }
-                    if (coords == EnPassantTarget)
+                    if (from.Rank == 3 && coords == EnPassantTarget)
                     {
                         yield return coords;
                     }
@@ -593,8 +600,8 @@ public sealed class Game
 
                         if (isUnderCheckAfterMove
                             || (isUnderCheckNow && (move.IsCastlingShort || move.IsCastlingLong))
-                            || move.IsCastlingShort && (opponentMoves.Any(x => x.To == new Coords(5, move.To.Rank)))
-                            || move.IsCastlingLong && (opponentMoves.Any(x => x.To == new Coords(3, move.To.Rank))))
+                            || move.IsCastlingShort && opponentMoves.Any(x => x.To == new Coords(5, move.To.Rank))
+                            || move.IsCastlingLong && opponentMoves.Any(x => x.To == new Coords(3, move.To.Rank)))
                         {
                             UndoMove(move);
                             break;

@@ -448,4 +448,45 @@ public sealed class PawnTests
         notations.Should().Contain("e1=B");
         notations.Should().Contain("e1=N");
     }
+
+    [Fact]
+    public void ShouldNotGiveCheck_WhenMovesOneSquare_AndTouchesKingVertically()
+    {
+        // Arrange
+        var pawn = _sut.Board[Coords.Parse("e6")] = Piece.CreatePawn(PieceColor.White);
+        _sut.Board[Coords.Parse("d2")] = Piece.CreatePawn(PieceColor.White);
+        _sut.Board[Coords.Parse("f2")] = Piece.CreatePawn(PieceColor.White);
+        _sut.Board[Coords.Parse("e8")] = Piece.CreateKing(PieceColor.Black);
+
+        // Act
+        var moves = _sut.GetMoves(pawn.Color);
+
+        // Assert
+        var notations = moves.Where(move => move.Piece == pawn)
+            .Select(move => move.GetNotationVariants()[0]);
+        notations.Should().Contain("e7");
+        notations.Should().NotContain("e7+");
+    }
+
+    [Fact]
+    public void ShouldNotGiveCheck_WhenMovesTwoSquares_AndTouchesKingVertically()
+    {
+        // Arrange
+        var pawn = _sut.Board[Coords.Parse("e2")] = Piece.CreatePawn(PieceColor.White);
+        _sut.Board[Coords.Parse("d2")] = Piece.CreatePawn(PieceColor.White);
+        _sut.Board[Coords.Parse("f2")] = Piece.CreatePawn(PieceColor.White);
+        _sut.Board[Coords.Parse("e5")] = Piece.CreateKing(PieceColor.Black);
+
+        // Act
+        var moves = _sut.GetMoves(pawn.Color);
+
+        // Assert
+        var notations = moves.Where(move => move.Piece == pawn)
+            .Select(move => move.GetNotationVariants()[0]);
+        notations.Should().Contain("e4");
+        notations.Should().NotContain("e4+");
+        var move = moves.Single(m => m.To == Coords.Parse("e4"));
+        move.IsCheck.Should().BeFalse();
+        move.IsCheckmate.Should().BeFalse();
+    }
 }
