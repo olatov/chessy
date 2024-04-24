@@ -15,16 +15,16 @@ public sealed class RookTests
         // Arrange
         var rook = Piece.CreateRook(PieceColor.White);
         _sut.Board["d4"] = rook;
-        string[] expected = [
+        var expected = new HashSet<string> {
             "Rd1", "Rd2", "Rd3", "Rd5", "Rd6", "Rd7", "Rd8",
             "Ra4", "Rb4", "Rc4", "Re4", "Rf4", "Rg4", "Rh4"
-        ];
+        };
 
         // Act
         var moves = _sut.GetMoves(rook.Color);
 
         // Assert
-        var notations = moves.Select(move => move.GetNotationVariants().First());
+        var notations = moves.Select(move => move.GetNotationVariants()[0]).ToHashSet();
         notations.Should().BeEquivalentTo(expected);
     }
 

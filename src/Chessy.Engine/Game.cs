@@ -370,6 +370,155 @@ public sealed class Game
         return (bestMove, bestScore);
     }
 
+    public IEnumerable<Coords> YieldPieceTargets(Coords from)
+    {
+        var piece = Board.Squares[from.File, from.Rank];
+        Coords coords;
+
+        if (piece.Kind == PieceKind.Pawn)
+        {
+            switch (piece.Color)
+            {
+                case PieceColor.White:
+                    coords = new Coords(from.File, from.Rank + 1);
+                    if (coords.IsValid && Board.Squares[coords.File, coords.Rank] is null)
+                    {
+                        yield return coords;
+                        coords = new Coords(from.File, from.Rank + 2);
+                        if (from.Rank == 1 && Board.Squares[coords.File, coords.Rank] is null)
+                        {
+                            yield return coords;
+                        }
+                    }
+
+                    coords = new Coords(from.File - 1, from.Rank + 1);
+                    if (coords.IsValid && Board.Squares[coords.File, coords.Rank]?.Color == piece.Color.OpponentColor())
+                    {
+                        yield return coords;
+                    }
+                    if (coords == EnPassantTarget)
+                    {
+                        yield return coords;
+                    }
+
+                    coords = new Coords(from.File + 1, from.Rank + 1);
+                    if (coords.IsValid && Board.Squares[coords.File, coords.Rank]?.Color == piece.Color.OpponentColor())
+                    {
+                        yield return coords;
+                    }
+                    if (coords == EnPassantTarget)
+                    {
+                        yield return coords;
+                    }
+
+                    break;
+
+                case PieceColor.Black:
+                    coords = new Coords(from.File, from.Rank - 1);
+                    if (coords.IsValid && Board.Squares[coords.File, coords.Rank] is null)
+                    {
+                        yield return coords;
+                        coords = new Coords(from.File, from.Rank - 2);
+                        if (from.Rank == 6 && Board.Squares[coords.File, coords.Rank] is null)
+                        {
+                            yield return coords;
+                        }
+                    }
+
+                    coords = new Coords(from.File - 1, from.Rank - 1);
+                    if (coords.IsValid && Board.Squares[coords.File, coords.Rank]?.Color == piece.Color.OpponentColor())
+                    {
+                        yield return coords;
+                    }
+                    if (coords == EnPassantTarget)
+                    {
+                        yield return coords;
+                    }
+
+                    coords = new Coords(from.File + 1, from.Rank - 1);
+                    if (coords.IsValid && Board.Squares[coords.File, coords.Rank]?.Color == piece.Color.OpponentColor())
+                    {
+                        yield return coords;
+                    }
+                    if (coords == EnPassantTarget)
+                    {
+                        yield return coords;
+                    }
+
+                    break;
+            }
+            yield break;
+        }
+
+        if (piece.Kind == PieceKind.King)
+        {
+            for (int i = -1; i <= 1; i++)
+            {
+                for (int j = -1; j <= 1; j++)
+                {
+                    if (i == 0 && j == 0) { continue; }
+                    coords = new Coords(from.File + i, from.Rank + j);
+                    if (coords.IsValid) { yield return coords; }
+                }
+            }
+
+            if ((piece.Color == PieceColor.White && CastlingRights.WhiteLong)
+                || (piece.Color == PieceColor.Black && CastlingRights.BlackLong))
+            {
+                yield return new Coords(2, from.Rank);
+            }
+
+            if ((piece.Color == PieceColor.White && CastlingRights.WhiteShort)
+                || (piece.Color == PieceColor.Black && CastlingRights.BlackShort))
+            {
+                yield return new Coords(6, from.Rank);
+            }
+        }
+
+        if (piece.Kind == PieceKind.Rook || piece.Kind == PieceKind.Queen)
+        {
+            foreach (var (i, j) in new[] { (-1, 0), (1, 0), (0, -1), (0, 1) })
+            {
+                coords = new Coords(from.File + i, from.Rank + j);
+                while (coords.IsValid)
+                {
+                    if (Board.Squares[coords.File, coords.Rank]?.Color == piece.Color) { break; }
+                    yield return coords;
+                    if (Board.Squares[coords.File, coords.Rank] is not null) { break; }
+                    coords = new Coords(coords.File + i, coords.Rank + j);
+                }
+            }
+        }
+
+        if (piece.Kind == PieceKind.Bishop || piece.Kind == PieceKind.Queen)
+        {
+            foreach (var (i, j) in new[] { (-1, -1), (-1, 1), (1, -1), (1, 1) })
+            {
+                coords = new Coords(from.File + i, from.Rank + j);
+                while (coords.IsValid)
+                {
+                    if (Board.Squares[coords.File, coords.Rank]?.Color == piece.Color) { break; }
+                    yield return coords;
+                    if (Board.Squares[coords.File, coords.Rank] is not null) { break; }
+                    coords = new Coords(coords.File + i, coords.Rank + j);
+                }
+            }
+        }
+
+        if (piece.Kind ==PieceKind.Knight)
+        {
+            foreach (var (i, j) in new[] { (-2, -1), (-2, 1), (-1, -2), (-1, 2), (1, -2), (1, 2), (2, -1), (2, 1) })
+            {
+                coords = new Coords(from.File + i, from.Rank + j);
+                if (coords.IsValid && Board.Squares[coords.File, coords.Rank]?.Color != piece.Color)
+                {
+                    yield return coords;
+                }
+            }
+            yield break;
+        }
+    }
+
 
     public IEnumerable<Move> GetMoves(PieceColor playerColor, bool skipChecks = false)
     {
@@ -377,9 +526,11 @@ public sealed class Game
 
         foreach (Coords from in Board.GetPiecesCoords(playerColor))
         {
-            Trace.Assert(Board.Squares[from.File, from.Rank] is not null);
+            var piece = Board.Squares[from.File, from.Rank];
+            Trace.Assert(piece is not null);
 
-            foreach (Coords to in Board.GetAllSquares())
+            IEnumerable<Coords> targetSquares = YieldPieceTargets(from);
+            foreach (Coords to in targetSquares)
             {
                 if (from == to || Board.Squares[to.File, to.Rank]?.Color == playerColor) { continue; }
 

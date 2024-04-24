@@ -39,4 +39,6 @@ public sealed record Coords(int File, int Rank)
     }
 
     public override string ToString() => $"{(char)('a' + File)}{Rank + 1}";
+
+    public bool IsValid => (File is >= 0 and <= 7) && (Rank is >= 0 and <= 7);
 }
