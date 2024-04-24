@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Chessy.Engine.Events;
 using Chessy.Engine.Extensions;
 using Chessy.Engine.Pieces;
@@ -303,9 +303,16 @@ public sealed class Game
         {
             var move = moveScores[index].Move;
             MakeMove(move);
-            //var (_, res) = await FindMoveABAsync(0, -beta, -alpha, !isMaximising);
-            moveScores[index].Score = isMaximising ? Board.MaterialValue : -Board.MaterialValue;
-            _nodesCounter++;
+            if (isTopLevel && depth > 3)
+            {
+                var (_, res) = await FindMoveABAsync(3, -beta, -alpha, !isMaximising, isTopLevel: false);
+                moveScores[index].Score = -res;
+            }
+            else
+            {
+                moveScores[index].Score = isMaximising ? Board.MaterialValue : -Board.MaterialValue;
+                _nodesCounter++;
+            }
             UndoMove(move);
         }
 
@@ -316,9 +323,9 @@ public sealed class Game
         {
             if (isTopLevel)
             {
-                Console.WriteLine($"[{counter} / {total}]\t");
+                Console.WriteLine($"[{counter} / {total}]\t{move}\t");
                 FindMoveProgress?.Invoke(this, new FindMoveProgressEventArgs { Current = counter, Total = total });
-                await Task.Delay(1);
+                await Task.Delay(1, cancellationToken);
             }
 
             double moveScore;
