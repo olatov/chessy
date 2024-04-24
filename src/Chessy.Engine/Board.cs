@@ -1,4 +1,4 @@
-﻿using Chessy.Engine.Extensions;
+using Chessy.Engine.Extensions;
 using Chessy.Engine.Pieces;
 
 namespace Chessy.Engine;
@@ -19,9 +19,9 @@ public record Board
         set => Squares[coords.File, coords.Rank] = value;
     }
 
-    private double[,] _pieceBonusTable = new double[8, 8];
+    private readonly double[,] _pieceBonusTable = new double[8, 8];
 
-    private double[,] _pawnBonusTable = new double[8, 8];
+    private readonly double[,] _pawnBonusTable = new double[8, 8];
 
     public Board()
     {
@@ -44,7 +44,7 @@ public record Board
         }
     }
 
-    public IEnumerable<Coords> GetAllSquares()
+    public static IEnumerable<Coords> GetAllSquares()
     {
         foreach (var file in Enumerable.Range(0, 8))
         {
