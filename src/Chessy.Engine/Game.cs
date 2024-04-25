@@ -356,7 +356,7 @@ public sealed class Game
 
             if (move.IsCastlingShort || move.IsCastlingLong)
             {
-                moveScore += 50;
+                moveScore += 25;
             }
 
             moveScore = -moveScore;
@@ -554,6 +554,8 @@ public sealed class Game
     {
         // TODO: find a better approach
 
+        var opponentColor = playerColor.OpponentColor();
+
         foreach (Coords from in Board.GetPiecesCoords(playerColor))
         {
             var piece = Board.Squares[from.File, from.Rank];
@@ -589,12 +591,22 @@ public sealed class Game
 
                     if (move.IsCastlingShort)
                     {
-                        if (Board.Squares[5, from.Rank] is not null) { break; }
+                        if (!(Board.IsClearBetween(move.From, new Coords(6, move.From.Rank))
+                            && ((playerColor == PieceColor.White && CastlingRights.WhiteShort)
+                            || (playerColor == PieceColor.Black && CastlingRights.BlackShort))))
+                        {
+                            break;
+                        }
                         move.CastlingRook = Board.Squares[7, from.Rank];
                     }
                     else if (move.IsCastlingLong)
                     {
-                        if (Board.Squares[3, from.Rank] is not null) { break; }
+                        if (!(Board.IsClearBetween(move.From, new Coords(2, move.From.Rank))
+                            && ((playerColor == PieceColor.White && CastlingRights.WhiteLong)
+                            || (playerColor == PieceColor.Black && CastlingRights.BlackLong))))
+                        {
+                            break;
+                        }
                         move.CastlingRook = Board.Squares[0, from.Rank];
                     }
 
@@ -609,16 +621,14 @@ public sealed class Game
                         move.CouldCastleLong = CastlingRights.BlackLong;
                     }
 
-                    if (!IsLegalMove(move)) { break; }
-
                     if (!skipChecks)
                     {
-                        var opponentMoves = GetMoves(playerColor.OpponentColor(), true);
+                        var opponentMoves = GetMoves(opponentColor, true);
                         bool isUnderCheckNow = opponentMoves.Any(x => x.CapturedPiece?.Kind == PieceKind.King);
 
                         MakeMove(move);
 
-                        opponentMoves = GetMoves(playerColor.OpponentColor(), true);
+                        opponentMoves = GetMoves(opponentColor, true);
                         bool isUnderCheckAfterMove = opponentMoves.Any(x => x.CapturedPiece?.Kind == PieceKind.King);
 
                         if (isUnderCheckAfterMove
@@ -635,7 +645,7 @@ public sealed class Game
                         if (move.IsCheck)
                         {
                             // TODO: fix this
-                            bool opponentHasMoves = GetMoves(playerColor.OpponentColor(), skipChecks: false).Any();
+                            bool opponentHasMoves = GetMoves(opponentColor, skipChecks: false).Any();
                             if (!opponentHasMoves)
                             {
                                 move.IsCheckmate = true;
@@ -651,126 +661,6 @@ public sealed class Game
                 }
             }
         }
-    }
-
-    public bool IsLegalMove(Move move)
-    {
-        // TODO: find a better approach
-
-        var piece = Board.Squares[move.From.File, move.From.Rank];
-        if (piece is null || piece != move.Piece) { return false; }
-
-        var destinationSquare = Board.Squares[move.To.File, move.To.Rank];
-        if (destinationSquare?.Color == piece.Color) { return false; }
-
-        switch (piece.Kind)
-        {
-            case PieceKind.King:
-                if ((Math.Abs(move.From.File - move.To.File) == 1
-                        && Math.Abs(move.From.Rank - move.To.Rank) <= 1)
-                    || (Math.Abs(move.From.File - move.To.File) <= 1
-                        && Math.Abs(move.From.Rank - move.To.Rank) == 1))
-                {
-                    return true;
-                }
-
-                if (move.IsCastlingShort
-                    && Board.IsClearBetween(move.From, new Coords(7, move.From.Rank))
-                    && ((piece.Color == PieceColor.White && CastlingRights.WhiteShort)
-                        || (piece.Color == PieceColor.Black && CastlingRights.BlackShort)))
-                {
-                    return true;
-                }
-                else if (move.IsCastlingLong
-                    && Board.IsClearBetween(move.From, new Coords(0, move.From.Rank))
-                    && ((piece.Color == PieceColor.White && CastlingRights.WhiteLong)
-                        || (piece.Color == PieceColor.Black && CastlingRights.BlackLong)))
-                {
-                    return true;
-                }
-
-                return false;
-
-            case PieceKind.Rook:
-                if (move.From.File == move.To.File || move.From.Rank == move.To.Rank)
-                {
-                    return Board.IsClearBetween(move.From, move.To);
-                }
-                break;
-
-            case PieceKind.Bishop:
-                if (Math.Abs(move.From.File - move.To.File) == Math.Abs(move.From.Rank - move.To.Rank))
-                {
-                    return Board.IsClearBetween(move.From, move.To);
-                }
-                break;
-
-            case PieceKind.Queen:
-                if (move.From.File == move.To.File || move.From.Rank == move.To.Rank || Math.Abs(move.From.File - move.To.File) == Math.Abs(move.From.Rank - move.To.Rank))
-                {
-                    return Board.IsClearBetween(move.From, move.To);
-                }
-                break;
-
-            case PieceKind.Knight:
-                if ((Math.Abs(move.From.File - move.To.File) == 1
-                     && Math.Abs(move.From.Rank - move.To.Rank) == 2)
-                    || (Math.Abs(move.From.File - move.To.File) == 2
-                    && Math.Abs(move.From.Rank - move.To.Rank) == 1))
-                {
-                    return true;
-                }
-                return false;
-
-            case PieceKind.Pawn:
-                switch (piece.Color)
-                {
-                    case PieceColor.White:
-                        if (move.To.Rank - move.From.Rank == 1
-                            && ((move.From.File == move.To.File && Board.Squares[move.To.File, move.To.Rank] is null)
-                                || (Math.Abs(move.From.File - move.To.File) == 1
-                                    && (Board.Squares[move.To.File, move.To.Rank]?.Color == PieceColor.Black
-                                        || move.To == EnPassantTarget))))
-                        {
-                            return true;
-                        }
-
-                        if (move.From.Rank == 1
-                            && move.To.Rank == 3
-                            && move.From.File == move.To.File
-                            && Board.Squares[move.From.File, 2] is null
-                            && Board.Squares[move.From.File, 3] is null)
-                        {
-                            return true;
-                        }
-
-                        return false;
-
-                    case PieceColor.Black:
-                        if (move.To.Rank - move.From.Rank == -1
-                            && ((move.From.File == move.To.File && Board.Squares[move.To.File, move.To.Rank] is null)
-                                || (Math.Abs(move.From.File - move.To.File) == 1
-                                    && (Board.Squares[move.To.File, move.To.Rank]?.Color == PieceColor.White
-                                        || move.To == EnPassantTarget))))
-                        {
-                            return true;
-                        }
-                        if (move.From.Rank == 6
-                            && move.To.Rank == 4
-                            && move.From.File == move.To.File
-                            && Board.Squares[move.From.File, 5] is null
-                            && Board.Squares[move.From.File, 4] is null)
-                        {
-                            return true;
-                        }
-
-                        return false;
-
-                }
-                break;
-        }
-
-        return false;
     }
 
     public string GetShortNotation(Move move)
