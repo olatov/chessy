@@ -19,9 +19,9 @@ public record Board
         set => Squares[coords.File, coords.Rank] = value;
     }
 
-    private readonly double[,] _pieceBonusTable = new double[8, 8];
+    private readonly int[,] _pieceBonusTable = new int[8, 8];
 
-    private readonly double[,] _pawnBonusTable = new double[8, 8];
+    private readonly int[,] _pawnBonusTable = new int[8, 8];
 
     public Board()
     {
@@ -113,11 +113,11 @@ public record Board
         return false;
     }
 
-    public double MaterialValue
+    public int MaterialValue
     {
         get
         {
-            double result = 0;
+            int result = 0;
 
             foreach (var file in Enumerable.Range(0, 8))
             {
@@ -126,7 +126,7 @@ public record Board
                     var piece = Squares[file, rank];
                     if (piece is null) { continue; }
 
-                    double value = piece.GetValue();
+                    int value = piece.GetValue();
                     result += value;
                     int sign = Math.Sign(value);
 
@@ -153,11 +153,11 @@ public record Board
         {
             for (var rank = 0; rank < 8; rank++)
             {
-                _pieceBonusTable[file, rank] =
-                    (8 - Math.Abs(3.5 - file) * 0.5 - Math.Abs(3.5 - rank) * 2) * 0.05
-                    + (Random.Shared.NextDouble() * 0.01 - 0.005);
+                _pieceBonusTable[file, rank] = (int)(5 * (5 - double.Hypot(file - 3.5, rank - 3.5)))
+                    + Random.Shared.Next(-3, 3);
             }
         }
+
     }
 
     private void FillPawnBounsTable()
@@ -166,9 +166,15 @@ public record Board
         {
             for (var file = 0; file < 8; file++)
             {
-                _pawnBonusTable[file, rank] =
-                    (4 - Math.Abs(3.5 - file) + rank * 3) * 0.02
-                    + (Random.Shared.NextDouble() * 0.01 - 0.005);
+                if (rank < 5)
+                {
+                    _pawnBonusTable[file, rank] = (int)(10 * (5 - double.Hypot(file - 3.5, rank - 3.5)))
+                        + Random.Shared.Next(-3, 3);
+                }
+                else
+                {
+                    _pawnBonusTable[file, rank] = rank * 1;
+                }
             }
         }
     }

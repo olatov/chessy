@@ -4,16 +4,16 @@ namespace Chessy.Engine.Extensions;
 
 public static class PieceExtensions
 {
-    public static double GetValue(this IPiece piece)
+    public static int GetValue(this IPiece piece)
     {
-        double value = piece.Kind switch
+        int value = piece.Kind switch
         {
-            PieceKind.Pawn => 1.00,
-            PieceKind.Knight => 3.05,
-            PieceKind.Bishop => 3.33,
-            PieceKind.Rook => 5.63,
-            PieceKind.Queen => 9.50,
-            PieceKind.King => 1.0e+6,
+            PieceKind.Pawn => 100,
+            PieceKind.Knight => 305,
+            PieceKind.Bishop => 333,
+            PieceKind.Rook => 563,
+            PieceKind.Queen => 950,
+            PieceKind.King => 100_000_000,
             _ => throw new NotImplementedException(),
         };
 

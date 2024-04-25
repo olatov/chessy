@@ -239,15 +239,15 @@ public sealed class Game
         else if (moves.Length == 1)
         {
             Console.WriteLine();
-            Console.WriteLine($"[Forced]\t{moves.Single().GetNotationVariants().First()}");
+            Console.WriteLine($"[Forced]\t{moves.Single().GetNotationVariants()[0]}");
             return moves.Single();
         }
 
-        var checkmateMove = Array.Find(moves, x => x.IsCheckmate);
-        if (checkmateMove is not null)
-        {
-            return checkmateMove;
-        }
+        // var checkmateMove = Array.Find(moves, x => x.IsCheckmate);
+        // if (checkmateMove is not null)
+        // {
+        //     return checkmateMove;
+        // }
 
         _nodesCounter = 0;
         var sw = Stopwatch.StartNew();
@@ -271,10 +271,10 @@ public sealed class Game
             && x.PromotionPieceKind == bestMove.PromotionPieceKind);
     }
 
-    public async Task<(Move? move, double score)> FindMoveABAsync(
+    public async Task<(Move? move, int score)> FindMoveABAsync(
         int depth,
-        double alpha = double.MinValue,
-        double beta = double.MaxValue,
+        int alpha = -1_000_000,
+        int beta = 1_000_000,
         bool isMaximising = true,
         bool isTopLevel = true,
         CancellationToken cancellationToken = default)
@@ -287,6 +287,12 @@ public sealed class Game
             return (null, isMaximising ? Board.MaterialValue : -Board.MaterialValue);
         }
 
+        int baseScore = 0;
+        if (isTopLevel)
+        {
+            baseScore = isMaximising ? Board.MaterialValue : -Board.MaterialValue;
+        }
+
         var moves = GetMoves(
             isMaximising ? PieceColor.White : PieceColor.Black,
             skipChecks: !isTopLevel);
@@ -295,7 +301,7 @@ public sealed class Game
             return (null, 0);
         }
 
-        double bestScore = double.MinValue;
+        int bestScore = int.MinValue;
         Move? bestMove = null;
 
         var moveScores = moves.Select(x => (Move: x, Score: 0.0)).ToArray();
@@ -305,7 +311,7 @@ public sealed class Game
             MakeMove(move);
             if (isTopLevel && depth > 3)
             {
-                var (_, res) = await FindMoveABAsync(3, -beta, -alpha, !isMaximising, isTopLevel: false);
+                var (_, res) = await FindMoveABAsync(2, -beta, -alpha, !isMaximising, isTopLevel: false);
                 moveScores[index].Score = -res;
             }
             else
@@ -319,47 +325,57 @@ public sealed class Game
         moves = moveScores.OrderByDescending(x => x.Score).Select(x => x.Move);
 
         int total = moves.Count();
+        var sw = new Stopwatch();
         foreach (var (move, counter) in moves.Zip(Enumerable.Range(1, total)))
         {
             if (isTopLevel)
             {
-                Console.WriteLine($"[{counter} / {total}]\t{move}\t");
+                Console.Write($"[{counter} / {total}]\t{move}\t");
                 FindMoveProgress?.Invoke(this, new FindMoveProgressEventArgs { Current = counter, Total = total });
                 await Task.Delay(1, cancellationToken);
+                sw.Restart();
             }
 
-            double moveScore;
+            int moveScore;
             if (move.IsStalemate)
             {
                 moveScore = 0;
             }
+            else if (move.CapturedPiece?.Kind == PieceKind.King)
+            {
+                moveScore = -100_000_000 - (depth * 1000);
+            }
             else
             {
-                if (move.CapturedPiece?.Kind == PieceKind.King)
-                {
-                    moveScore = -1.0e+6 - (depth * 1000);
-                    _nodesCounter++;
-                }
-                else
-                {
-                    MakeMove(move);
-                    (_, moveScore) = await FindMoveABAsync(
-                        depth - 1, -beta, -alpha, !isMaximising, isTopLevel: false,
-                        cancellationToken: cancellationToken);
-                    UndoMove(move);
-                }
-                moveScore = -moveScore;
+                MakeMove(move);
+                (_, moveScore) = await FindMoveABAsync(
+                    depth - 1, -beta, -alpha, !isMaximising, isTopLevel: false,
+                    cancellationToken: cancellationToken);
+                UndoMove(move);
+            }
 
-                if (move.IsCastlingShort || move.IsCastlingLong)
-                {
-                    moveScore += 0.05;
-                }
+            if (move.IsCastlingShort || move.IsCastlingLong)
+            {
+                moveScore += 50;
+            }
 
-                if (moveScore > bestScore)
-                {
-                    bestScore = moveScore;
-                    bestMove = move;
-                }
+            moveScore = -moveScore;
+            if (moveScore > bestScore)
+            {
+                bestScore = moveScore;
+                bestMove = move;
+            }
+
+            if (isTopLevel)
+            {
+                sw.Stop();
+                double diff = (moveScore - baseScore) / 100.0;
+                Console.Write($"{moveScore / 100.0:0.00}\t" +
+                    $"({diff:+0.00;-0.00;0.00})\t\t");
+
+                Console.Write(sw.ElapsedMilliseconds >= 100 ? $"{sw.Elapsed.TotalSeconds:0.0}s\t" : "-\t");
+
+                Console.WriteLine(moveScore == bestScore ? "*" : "");
             }
 
             alpha = Math.Max(alpha, bestScore);
@@ -629,8 +645,6 @@ public sealed class Game
                         }
 
                         UndoMove(move);
-
-
                     }
 
                     yield return move;
