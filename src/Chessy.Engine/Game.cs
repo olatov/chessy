@@ -334,6 +334,18 @@ public sealed class Game
                 FindMoveProgress?.Invoke(this, new FindMoveProgressEventArgs { Current = counter, Total = total });
                 await Task.Delay(1, cancellationToken);
                 sw.Restart();
+
+                // Fixme: hack
+                if (!move.IsCheck)
+                {
+                    MakeMove(move);
+                    var opponentMoves = GetMoves(isMaximising ? PieceColor.Black : PieceColor.White);
+                    if (!opponentMoves.Any())
+                    {
+                        move.IsStalemate = true;
+                    }
+                    UndoMove(move);
+                }
             }
 
             int moveScore;
