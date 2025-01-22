@@ -325,11 +325,12 @@ public sealed class Game
         moves = moveScores.OrderByDescending(x => x.Score).Select(x => x.Move);
 
         int total = moves.Count();
-        var sw = new Stopwatch();
+        Stopwatch? sw = null;
         foreach (var (move, counter) in moves.Zip(Enumerable.Range(1, total)))
         {
             if (isTopLevel)
             {
+                sw = new Stopwatch();
                 Console.Write($"[{counter} / {total}]\t{move}\t");
                 FindMoveProgress?.Invoke(this, new FindMoveProgressEventArgs { Current = counter, Total = total });
                 await Task.Delay(1, cancellationToken);
@@ -368,7 +369,7 @@ public sealed class Game
 
             if (move.IsCastlingShort || move.IsCastlingLong)
             {
-                moveScore += 25;
+                moveScore += 250;
             }
 
             moveScore = -moveScore;
