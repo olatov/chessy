@@ -10,3 +10,4 @@ sonar-project.properties
 .netlify
 
 fly.toml
+netlify.toml
